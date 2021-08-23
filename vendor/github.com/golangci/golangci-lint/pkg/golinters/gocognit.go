@@ -1,4 +1,3 @@
-// nolint:dupl
 package golinters
 
 import (
@@ -39,7 +38,7 @@ func NewGocognit() *goanalysis.Linter {
 				return nil, nil
 			}
 
-			sort.Slice(stats, func(i, j int) bool {
+			sort.SliceStable(stats, func(i, j int) bool {
 				return stats[i].Complexity > stats[j].Complexity
 			})
 
@@ -49,7 +48,7 @@ func NewGocognit() *goanalysis.Linter {
 					break // Break as the stats is already sorted from greatest to least
 				}
 
-				res = append(res, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+				res = append(res, goanalysis.NewIssue(&result.Issue{
 					Pos: s.Pos,
 					Text: fmt.Sprintf("cognitive complexity %d of func %s is high (> %d)",
 						s.Complexity, formatCode(s.FuncName, lintCtx.Cfg), lintCtx.Settings().Gocognit.MinComplexity),

@@ -28,12 +28,30 @@ func NewGodot() *goanalysis.Linter {
 		nil,
 	).WithContextSetter(func(lintCtx *linter.Context) {
 		cfg := lintCtx.Cfg.LintersSettings.Godot
-		settings := godot.Settings{CheckAll: cfg.CheckAll}
+		settings := godot.Settings{
+			Scope:   godot.Scope(cfg.Scope),
+			Exclude: cfg.Exclude,
+			Period:  true,
+			Capital: cfg.Capital,
+		}
+
+		// Convert deprecated setting
+		if cfg.CheckAll { // nolint: staticcheck
+			settings.Scope = godot.TopLevelScope
+		}
+
+		if settings.Scope == "" {
+			settings.Scope = godot.DeclScope
+		}
 
 		analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
-			var issues []godot.Message
+			var issues []godot.Issue
 			for _, file := range pass.Files {
-				issues = append(issues, godot.Run(file, pass.Fset, settings)...)
+				iss, err := godot.Run(file, pass.Fset, settings)
+				if err != nil {
+					return nil, err
+				}
+				issues = append(issues, iss...)
 			}
 
 			if len(issues) == 0 {
@@ -43,10 +61,12 @@ func NewGodot() *goanalysis.Linter {
 			res := make([]goanalysis.Issue, len(issues))
 			for k, i := range issues {
 				issue := result.Issue{
-					Pos:         i.Pos,
-					Text:        i.Message,
-					FromLinter:  godotName,
-					Replacement: &result.Replacement{},
+					Pos:        i.Pos,
+					Text:       i.Message,
+					FromLinter: godotName,
+					Replacement: &result.Replacement{
+						NewLines: []string{i.Replacement},
+					},
 				}
 
 				res[k] = goanalysis.NewIssue(&issue, pass)

@@ -3,10 +3,9 @@ package golinters
 import (
 	"sync"
 
-	"golang.org/x/tools/go/packages"
-
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/buildssa"
+	"golang.org/x/tools/go/packages"
 	"mvdan.cc/unparam/check"
 
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
@@ -58,7 +57,7 @@ func NewUnparam() *goanalysis.Linter {
 
 			var res []goanalysis.Issue
 			for _, i := range unparamIssues {
-				res = append(res, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+				res = append(res, goanalysis.NewIssue(&result.Issue{
 					Pos:        pass.Fset.Position(i.Pos()),
 					Text:       i.Message(),
 					FromLinter: linterName,

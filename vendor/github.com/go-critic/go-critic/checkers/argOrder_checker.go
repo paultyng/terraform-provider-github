@@ -4,8 +4,8 @@ import (
 	"go/ast"
 	"go/types"
 
-	"github.com/go-lintpack/lintpack"
-	"github.com/go-lintpack/lintpack/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/go-toolsmith/astcast"
 	"github.com/go-toolsmith/astcopy"
 	"github.com/go-toolsmith/astp"
@@ -13,28 +13,28 @@ import (
 )
 
 func init() {
-	var info lintpack.CheckerInfo
+	var info linter.CheckerInfo
 	info.Name = "argOrder"
-	info.Tags = []string{"diagnostic", "experimental"}
+	info.Tags = []string{"diagnostic"}
 	info.Summary = "Detects suspicious arguments order"
 	info.Before = `strings.HasPrefix("#", userpass)`
 	info.After = `strings.HasPrefix(userpass, "#")`
 
-	collection.AddChecker(&info, func(ctx *lintpack.CheckerContext) lintpack.FileWalker {
-		return astwalk.WalkerForExpr(&argOrderChecker{ctx: ctx})
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
+		return astwalk.WalkerForExpr(&argOrderChecker{ctx: ctx}), nil
 	})
 }
 
 type argOrderChecker struct {
 	astwalk.WalkHandler
-	ctx *lintpack.CheckerContext
+	ctx *linter.CheckerContext
 }
 
 func (c *argOrderChecker) VisitExpr(expr ast.Expr) {
 	call := astcast.ToCallExpr(expr)
 
 	// For now only handle functions of 2 args.
-	// TODO(Quasilyte): generalize the algorithm and add more patterns.
+	// TODO(quasilyte): generalize the algorithm and add more patterns.
 	if len(call.Args) != 2 {
 		return
 	}
@@ -59,23 +59,22 @@ func (c *argOrderChecker) VisitExpr(expr ast.Expr) {
 }
 
 func (c *argOrderChecker) isConstLiteral(x ast.Expr) bool {
-	if c.ctx.TypesInfo.Types[x].Value != nil {
-		return true
-	}
-
 	// Also permit byte slices.
 	switch x := x.(type) {
+	case *ast.BasicLit:
+		return true
+
 	case *ast.CallExpr:
 		// Handle `[]byte("abc")` as well.
 		if len(x.Args) != 1 || !astp.IsBasicLit(x.Args[0]) {
 			return false
 		}
-		typ, ok := c.ctx.TypesInfo.TypeOf(x.Fun).(*types.Slice)
+		typ, ok := c.ctx.TypeOf(x.Fun).(*types.Slice)
 		return ok && typep.HasUint8Kind(typ.Elem())
 
 	case *ast.CompositeLit:
 		// Check if it's a const byte slice.
-		typ, ok := c.ctx.TypesInfo.TypeOf(x).(*types.Slice)
+		typ, ok := c.ctx.TypeOf(x).(*types.Slice)
 		if !ok || !typep.HasUint8Kind(typ.Elem()) {
 			return false
 		}

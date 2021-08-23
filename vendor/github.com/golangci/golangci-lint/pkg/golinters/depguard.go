@@ -7,7 +7,7 @@ import (
 
 	"github.com/OpenPeeDeeP/depguard"
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/loader" //nolint:staticcheck // require changes in github.com/OpenPeeDeeP/depguard
 
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
 	"github.com/golangci/golangci-lint/pkg/lint/linter"
@@ -94,7 +94,7 @@ func NewDepguard() *goanalysis.Linter {
 				if userSuppliedMsgSuffix != "" {
 					userSuppliedMsgSuffix = ": " + userSuppliedMsgSuffix
 				}
-				res = append(res, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+				res = append(res, goanalysis.NewIssue(&result.Issue{
 					Pos:        i.Position,
 					Text:       fmt.Sprintf("%s %s%s", formatCode(i.PackageName, lintCtx.Cfg), msgSuffix, userSuppliedMsgSuffix),
 					FromLinter: linterName,

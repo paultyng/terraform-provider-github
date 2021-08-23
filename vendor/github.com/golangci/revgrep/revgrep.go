@@ -80,6 +80,7 @@ func (c *Checker) preparePatch() error {
 	return nil
 }
 
+// InputIssue represents issue found by some linter
 type InputIssue interface {
 	FilePath() string
 	Line() int
@@ -98,12 +99,14 @@ func (i simpleInputIssue) Line() int {
 	return i.lineNumber
 }
 
+// Prepare extracts a patch and changed lines
 func (c *Checker) Prepare() error {
 	returnErr := c.preparePatch()
 	c.changes = c.linesChanged()
 	return returnErr
 }
 
+// IsNewIssue checks whether issue found by linter is new: it was found in changed lines
 func (c Checker) IsNewIssue(i InputIssue) (hunkPos int, isNew bool) {
 	fchanges, ok := c.changes[i.FilePath()]
 	if !ok { // file wasn't changed
@@ -116,7 +119,7 @@ func (c Checker) IsNewIssue(i InputIssue) (hunkPos int, isNew bool) {
 	)
 	// found file, see if lines matched
 	for _, pos := range fchanges {
-		if pos.lineNo == int(i.Line()) {
+		if pos.lineNo == i.Line() {
 			fpos = pos
 			changed = true
 			break
@@ -276,9 +279,21 @@ func (c Checker) linesChanged() map[string][]pos {
 		return changes
 	}
 
-	scanner := bufio.NewScanner(c.Patch)
-	for scanner.Scan() {
-		line := scanner.Text() // TODO scanner.Bytes()
+	scanner := bufio.NewReader(c.Patch)
+	var scanErr error
+	for {
+		lineB, isPrefix, err := scanner.ReadLine()
+		if isPrefix {
+			// If a single line overflowed the buffer, don't bother processing it as
+			// it's likey part of a file and not relevant to the patch.
+			continue
+		}
+		if err != nil {
+			scanErr = err
+			break
+		}
+		line := strings.TrimRight(string(lineB), "\n")
+
 		c.debugf(line)
 		s.lineNo++
 		s.hunkPos++
@@ -310,8 +325,8 @@ func (c Checker) linesChanged() map[string][]pos {
 		}
 
 	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	if scanErr != nil && scanErr != io.EOF {
+		fmt.Fprintln(os.Stderr, "reading standard input:", scanErr)
 	}
 	// record the last state
 	changes[s.file] = s.changes
@@ -338,7 +353,7 @@ func GitPatch(revisionFrom, revisionTo string) (io.Reader, []string, error) {
 
 	// make a patch for untracked files
 	var newFiles []string
-	ls, err := exec.Command("git", "ls-files", "-o").CombinedOutput()
+	ls, err := exec.Command("git", "ls-files", "--others", "--exclude-standard").CombinedOutput()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error executing git ls-files: %s", err)
 	}

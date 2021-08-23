@@ -6,20 +6,20 @@ import (
 	"go/types"
 	"strings"
 
-	"github.com/go-lintpack/lintpack"
-	"github.com/go-lintpack/lintpack/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/go-toolsmith/astcast"
 )
 
 func init() {
-	var info lintpack.CheckerInfo
+	var info linter.CheckerInfo
 	info.Name = "wrapperFunc"
-	info.Tags = []string{"style", "experimental"}
+	info.Tags = []string{"style"}
 	info.Summary = "Detects function calls that can be replaced with convenience wrappers"
 	info.Before = `wg.Add(-1)`
 	info.After = `wg.Done()`
 
-	collection.AddChecker(&info, func(ctx *lintpack.CheckerContext) lintpack.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		type arg struct {
 			index int
 			value string
@@ -80,6 +80,11 @@ func init() {
 			},
 			"bytes.Map => bytes.ToTitle": {
 				{0, "unicode.ToTitle"},
+			},
+
+			"draw.DrawMask => draw.Draw": {
+				{4, "nil"},
+				{5, "image.Point{}"},
 			},
 		}
 
@@ -185,7 +190,7 @@ func init() {
 				}
 			}
 
-			typ := c.ctx.TypesInfo.TypeOf(x)
+			typ := c.ctx.TypeOf(x)
 			tn, ok := typ.(*types.Named)
 			if !ok {
 				return ""
@@ -197,13 +202,13 @@ func init() {
 				m.typPatterns)
 		}
 
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 
 type wrapperFuncChecker struct {
 	astwalk.WalkHandler
-	ctx *lintpack.CheckerContext
+	ctx *linter.CheckerContext
 
 	findSuggestion func(*ast.CallExpr) string
 }

@@ -1,4 +1,10 @@
 # gomodguard
+[![License](https://img.shields.io/github/license/ryancurrah/gomodguard?style=flat-square)](/LICENSE)
+[![Codecov](https://img.shields.io/codecov/c/gh/ryancurrah/gomodguard?style=flat-square)](https://codecov.io/gh/ryancurrah/gomodguard)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ryancurrah/gomodguard/Go?logo=Go&style=flat-square)](https://github.com/ryancurrah/gomodguard/actions?query=workflow%3AGo)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ryancurrah/gomodguard?style=flat-square)](https://github.com/ryancurrah/gomodguard/releases/latest)
+[![Docker](https://img.shields.io/docker/pulls/ryancurrah/gomodguard?style=flat-square)](https://hub.docker.com/r/ryancurrah/gomodguard)
+[![Github Releases Stats of golangci-lint](https://img.shields.io/github/downloads/ryancurrah/gomodguard/total.svg?logo=github&style=flat-square)](https://somsubhra.com/github-release-stats/?username=ryancurrah&repository=gomodguard)
 
 <img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/9afcc208898c763be95f046eb2f6080146607209.png" width="30%">
 
@@ -6,7 +12,7 @@ Allow and block list linter for direct Go module dependencies. This is useful fo
 
 ## Description
 
-Allowed and blocked modules are defined in a `.gomodguard.yaml` or `~/.gomodguard.yaml` file. 
+Allowed and blocked modules are defined in a `./.gomodguard.yaml` or `~/.gomodguard.yaml` file. 
 
 Modules can be allowed by module or domain name. When allowed modules are specified any modules not in the allowed configuration are blocked.
 
@@ -17,6 +23,8 @@ The linter looks for blocked modules in `go.mod` and searches for imported packa
 Alternative modules can be optionally recommended in the blocked modules list.
 
 If the linted module imports a blocked module but the linted module is in the recommended modules list the blocked module is ignored. Usually, this means the linted module wraps that blocked module for use by other modules, therefore the import of the blocked module should not be blocked.
+
+Version constraints can be specified for modules as well which lets you block new or old versions of modules or specific versions.
 
 Results are printed to `stdout`.
 
@@ -42,6 +50,10 @@ blocked:
         recommendations:                                        # Recommended modules that should be used instead (Optional)
           - golang.org/x/mod                           
         reason: "`mod` is the official go.mod parser library."  # Reason why the recommended module should be used (Optional)
+  versions:                                                     # List of blocked module version constraints.
+    - github.com/mitchellh/go-homedir:                          # Blocked module with version constraint.
+        version: "<= 1.1.0"                                     # Version constraint, see https://github.com/Masterminds/semver#basic-comparisons.
+        reason: "testing if blocked version constraint works."  # Reason why the version constraint exists.
 ```
 
 ## Usage
@@ -52,17 +64,22 @@ Usage: gomodguard <file> [files...]
 Also supports package syntax but will use it in relative path, i.e. ./pkg/...
 Flags:
   -f string
-        Report results to the specified file. A report type must also be specified
+    	Report results to the specified file. A report type must also be specified
   -file string
 
-  -h    Show this help text
+  -h	Show this help text
   -help
 
-  -n    Don't lint test files
+  -i int
+    	Exit code when issues were found (default 2)
+  -issues-exit-code int 
+      (default 2)
+  
+  -n	Don't lint test files
   -no-test
 
   -r string
-        Report results to one of the following formats: checkstyle. A report file destination must also be specified
+    	Report results to one of the following formats: checkstyle. A report file destination must also be specified
   -report string
 ```
 

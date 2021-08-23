@@ -1,7 +1,6 @@
 package rowserr
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
 	"strconv"
@@ -39,10 +38,10 @@ type runner struct {
 
 func NewRun(pkgs ...string) func(pass *analysis.Pass) (interface{}, error) {
 	return func(pass *analysis.Pass) (interface{}, error) {
-		pkgs = append(pkgs, "database/sql")
-		for _, pkg := range pkgs {
+		sqlPkgs := append(pkgs, "database/sql")
+		for _, pkg := range sqlPkgs {
 			r := new(runner)
-			r.sqlPkgs = pkgs
+			r.sqlPkgs = sqlPkgs
 			r.run(pass, pkg)
 		}
 		return nil, nil
@@ -51,7 +50,7 @@ func NewRun(pkgs ...string) func(pass *analysis.Pass) (interface{}, error) {
 
 // run executes an analysis for the pass. The receiver is passed
 // by value because this func is called in parallel for different passes.
-func (r runner) run(pass *analysis.Pass, pkgPath string) (interface{}, error) {
+func (r runner) run(pass *analysis.Pass, pkgPath string) {
 	r.pass = pass
 	pssa := pass.ResultOf[buildssa.Analyzer].(*buildssa.SSA)
 	funcs := pssa.SrcFuncs
@@ -59,18 +58,24 @@ func (r runner) run(pass *analysis.Pass, pkgPath string) (interface{}, error) {
 	pkg := pssa.Pkg.Prog.ImportedPackage(pkgPath)
 	if pkg == nil {
 		// skip
-		return nil, nil
+		return
 	}
 
-	r.rowsObj = pkg.Type(rowsName).Object()
+	rowsType := pkg.Type(rowsName)
+	if rowsType == nil {
+		// skip checking
+		return
+	}
+
+	r.rowsObj = rowsType.Object()
 	if r.rowsObj == nil {
 		// skip checking
-		return nil, nil
+		return
 	}
 
 	resNamed, ok := r.rowsObj.Type().(*types.Named)
 	if !ok {
-		return nil, nil
+		return
 	}
 
 	r.rowsTyp = types.NewPointer(resNamed)
@@ -83,75 +88,83 @@ func (r runner) run(pass *analysis.Pass, pkgPath string) (interface{}, error) {
 		}
 
 		// skip if the function is just referenced
-		var isreffunc bool
+		var isRefFunc bool
 
 		for i := 0; i < f.Signature.Results().Len(); i++ {
 			if types.Identical(f.Signature.Results().At(i).Type(), r.rowsTyp) {
-				isreffunc = true
+				isRefFunc = true
 			}
 		}
 
-		if isreffunc {
+		if isRefFunc {
 			continue
 		}
 
 		for _, b := range f.Blocks {
 			for i := range b.Instrs {
-				if r.notCheck(b, i) {
-					pass.Reportf(b.Instrs[i].Pos(), fmt.Sprintf("rows.Err must be checked"))
+				if r.errCallMissing(b, i) {
+					pass.Reportf(b.Instrs[i].Pos(), "rows.Err must be checked")
 				}
 			}
 		}
 	}
-
-	return nil, nil
 }
 
-func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
-	call, ok := r.getReqCall(b.Instrs[i])
+func (r *runner) errCallMissing(b *ssa.BasicBlock, i int) (ret bool) {
+	call, ok := r.getCallReturnsRow(b.Instrs[i])
 	if !ok {
 		return false
 	}
 
 	for _, cRef := range *call.Referrers() {
-		val, ok := r.getResVal(cRef)
+		val, ok := r.getRowsVal(cRef)
 		if !ok {
 			continue
 		}
-
 		if len(*val.Referrers()) == 0 {
-			return true
+			continue
 		}
-
 		resRefs := *val.Referrers()
-		for _, resRef := range resRefs {
+		var errCalled func(resRef ssa.Instruction) bool
+		errCalled = func(resRef ssa.Instruction) bool {
 			switch resRef := resRef.(type) {
-			case *ssa.Store: // Call in Closure function
-				if len(*resRef.Addr.Referrers()) == 0 {
-					return true
+			case *ssa.Phi:
+				for _, rf := range *resRef.Referrers() {
+					if errCalled(rf) {
+						return true
+					}
 				}
-
+			case *ssa.Store: // Call in Closure function
 				for _, aref := range *resRef.Addr.Referrers() {
-					if c, ok := aref.(*ssa.MakeClosure); ok {
+					switch c := aref.(type) {
+					case *ssa.MakeClosure:
 						f := c.Fn.(*ssa.Function)
 						if r.noImportedDBSQL(f) {
 							// skip this
-							return false
+							continue
 						}
 						called := r.isClosureCalled(c)
-
-						return r.calledInFunc(f, called)
+						if r.calledInFunc(f, called) {
+							return true
+						}
+					case *ssa.UnOp:
+						for _, rf := range *c.Referrers() {
+							if errCalled(rf) {
+								return true
+							}
+						}
 					}
-
 				}
 			case *ssa.Call: // Indirect function call
-				if r.isCloseCall(resRef) {
-					return false
+				if r.isErrCall(resRef) {
+					return true
 				}
 				if f, ok := resRef.Call.Value.(*ssa.Function); ok {
 					for _, b := range f.Blocks {
 						for i := range b.Instrs {
-							return r.notCheck(b, i)
+							if !r.errCallMissing(b, i) {
+								return true
+							}
 						}
 					}
 				}
@@ -163,11 +176,19 @@ func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
 					}
 
 					for _, ccall := range *bOp.Referrers() {
-						if r.isCloseCall(ccall) {
-							return false
+						if r.isErrCall(ccall) {
+							return true
 						}
 					}
 				}
+			}
+
+			return false
+		}
+
+		for _, resRef := range resRefs {
+			if errCalled(resRef) {
+				return false
 			}
 		}
 	}
@@ -175,7 +196,7 @@ func (r *runner) notCheck(b *ssa.BasicBlock, i int) bool {
 	return true
 }
 
-func (r *runner) getReqCall(instr ssa.Instruction) (*ssa.Call, bool) {
+func (r *runner) getCallReturnsRow(instr ssa.Instruction) (*ssa.Call, bool) {
 	call, ok := instr.(*ssa.Call)
 	if !ok {
 		return nil, false
@@ -195,7 +216,7 @@ func (r *runner) getReqCall(instr ssa.Instruction) (*ssa.Call, bool) {
 	return call, true
 }
 
-func (r *runner) getResVal(instr ssa.Instruction) (ssa.Value, bool) {
+func (r *runner) getRowsVal(instr ssa.Instruction) (ssa.Value, bool) {
 	switch instr := instr.(type) {
 	case *ssa.Call:
 		if len(instr.Call.Args) == 1 && types.Identical(instr.Call.Args[0].Type(), r.rowsTyp) {
@@ -205,6 +226,7 @@ func (r *runner) getResVal(instr ssa.Instruction) (ssa.Value, bool) {
 		if types.Identical(instr.Type(), r.rowsTyp) {
 			return instr, true
 		}
+	default:
 	}
 
 	return nil, false
@@ -222,7 +244,7 @@ func (r *runner) getBodyOp(instr ssa.Instruction) (*ssa.UnOp, bool) {
 	return op, true
 }
 
-func (r *runner) isCloseCall(ccall ssa.Instruction) bool {
+func (r *runner) isErrCall(ccall ssa.Instruction) bool {
 	switch ccall := ccall.(type) {
 	case *ssa.Defer:
 		if ccall.Call.Value != nil && ccall.Call.Value.Name() == errMethod {
@@ -292,28 +314,18 @@ func (r *runner) calledInFunc(f *ssa.Function, called bool) bool {
 						if vCall, ok := v.(*ssa.Call); ok {
 							if vCall.Call.Value != nil && vCall.Call.Value.Name() == errMethod {
 								if called {
-									return false
+									return true
 								}
 							}
 						}
 					}
 				}
 			default:
-				if r.notCheck(b, i) || !called {
-					return true
+				if r.errCallMissing(b, i) || !called {
+					return false
 				}
 			}
 		}
 	}
-	return true
-}
-
-// isNamedType reports whether t is the named type path.name.
-func isNamedType(t types.Type, path, name string) bool {
-	n, ok := t.(*types.Named)
-	if !ok {
-		return false
-	}
-	obj := n.Obj()
-	return obj.Name() == name && obj.Pkg() != nil && obj.Pkg().Path() == path
+	return false
 }

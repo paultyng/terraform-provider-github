@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	goconstAPI "github.com/golangci/goconst"
+	goconstAPI "github.com/jgautheron/goconst"
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/golangci/golangci-lint/pkg/golinters/goanalysis"
@@ -46,10 +46,21 @@ func NewGoconst() *goanalysis.Linter {
 }
 
 func checkConstants(pass *analysis.Pass, lintCtx *linter.Context) ([]goanalysis.Issue, error) {
+	settings := lintCtx.Settings().Goconst
+
 	cfg := goconstAPI.Config{
-		MatchWithConstants: true,
-		MinStringLength:    lintCtx.Settings().Goconst.MinStringLen,
-		MinOccurrences:     lintCtx.Settings().Goconst.MinOccurrencesCount,
+		IgnoreTests:        settings.IgnoreTests,
+		MatchWithConstants: settings.MatchWithConstants,
+		MinStringLength:    settings.MinStringLen,
+		MinOccurrences:     settings.MinOccurrencesCount,
+		ParseNumbers:       settings.ParseNumbers,
+		NumberMin:          settings.NumberMin,
+		NumberMax:          settings.NumberMax,
+		ExcludeTypes:       map[goconstAPI.Type]bool{},
+	}
+
+	if settings.IgnoreCalls {
+		cfg.ExcludeTypes[goconstAPI.Call] = true
 	}
 
 	goconstIssues, err := goconstAPI.Run(pass.Files, pass.Fset, &cfg)
@@ -63,14 +74,14 @@ func checkConstants(pass *analysis.Pass, lintCtx *linter.Context) ([]goanalysis.
 
 	res := make([]goanalysis.Issue, 0, len(goconstIssues))
 	for _, i := range goconstIssues {
-		textBegin := fmt.Sprintf("string %s has %d occurrences", formatCode(i.Str, lintCtx.Cfg), i.OccurencesCount)
+		textBegin := fmt.Sprintf("string %s has %d occurrences", formatCode(i.Str, lintCtx.Cfg), i.OccurrencesCount)
 		var textEnd string
 		if i.MatchingConst == "" {
 			textEnd = ", make it a constant"
 		} else {
 			textEnd = fmt.Sprintf(", but such constant %s already exists", formatCode(i.MatchingConst, lintCtx.Cfg))
 		}
-		res = append(res, goanalysis.NewIssue(&result.Issue{ //nolint:scopelint
+		res = append(res, goanalysis.NewIssue(&result.Issue{
 			Pos:        i.Pos,
 			Text:       textBegin + textEnd,
 			FromLinter: goconstName,

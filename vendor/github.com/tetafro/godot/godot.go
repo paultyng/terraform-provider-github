@@ -1,130 +1,135 @@
-// Package godot checks if all top-level comments contain a period at the
-// end of the last sentence if needed.
+// Package godot checks if comments contain a period at the end of the last
+// sentence if needed.
 package godot
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
+	"io/ioutil"
+	"os"
 	"regexp"
+	"sort"
 	"strings"
 )
 
-// Message contains a message of linting error.
-type Message struct {
-	Pos     token.Position
-	Message string
+// NOTE: Line and column indexes are 1-based.
+
+// NOTE: Errors `invalid line number inside comment...` should never happen.
+// Their goal is to prevent panic, if there's a bug with array indexes.
+
+// Issue contains a description of linting error and a recommended replacement.
+type Issue struct {
+	Pos         token.Position
+	Message     string
+	Replacement string
 }
 
-// Settings contains linter settings.
-type Settings struct {
-	// Check all top-level comments, not only declarations
-	CheckAll bool
+// position is a position inside a comment (might be multiline comment).
+type position struct {
+	line   int
+	column int
 }
 
-var (
-	// List of valid last characters.
-	lastChars = []string{".", "?", "!"}
-
-	// Special tags in comments like "nolint" or "build".
-	tags = regexp.MustCompile("^[a-z]+:")
-
-	// URL at the end of the line.
-	endURL = regexp.MustCompile(`[a-z]+://[^\s]+$`)
-)
+// comment is an internal representation of AST comment entity with additional
+// data attached. The latter is used for creating a full replacement for
+// the line with issues.
+type comment struct {
+	lines []string       // unmodified lines from file
+	text  string         // concatenated `lines` with special parts excluded
+	start token.Position // position of the first symbol in comment
+	decl  bool           // whether comment is a special one (should not be checked)
+}
 
 // Run runs this linter on the provided code.
-func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
-	msgs := []Message{}
-
-	// Check all top-level comments
-	if settings.CheckAll {
-		for _, group := range file.Comments {
-			if ok, msg := check(fset, group); !ok {
-				msgs = append(msgs, msg)
-			}
-		}
-		return msgs
+func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error) {
+	pf, err := newParsedFile(file, fset)
+	if err == errEmptyInput || err == errUnsuitableInput {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("parse input file: %v", err)
 	}
 
-	// Check only declaration comments
-	for _, decl := range file.Decls {
-		switch d := decl.(type) {
-		case *ast.GenDecl:
-		case *ast.FuncDecl:
-			if ok, msg := check(fset, d.Doc); !ok {
-				msgs = append(msgs, msg)
-			}
+	exclude := make([]*regexp.Regexp, len(settings.Exclude))
+	for i := 0; i < len(settings.Exclude); i++ {
+		exclude[i], err = regexp.Compile(settings.Exclude[i])
+		if err != nil {
+			return nil, fmt.Errorf("invalid regexp: %v", err)
 		}
 	}
-	return msgs
+
+	comments := pf.getComments(settings.Scope, exclude)
+	issues := checkComments(comments, settings)
+	sortIssues(issues)
+
+	return issues, nil
 }
 
-func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) {
-	if group == nil || len(group.List) == 0 {
-		return true, Message{}
+// Fix fixes all issues and returns new version of file content.
+func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([]byte, error) {
+	// Read file
+	content, err := ioutil.ReadFile(path) // nolint: gosec
+	if err != nil {
+		return nil, fmt.Errorf("read file: %v", err)
+	}
+	if len(content) == 0 {
+		return nil, nil
 	}
 
-	// Check only top-level comments
-	if fset.Position(group.Pos()).Column > 1 {
-		return true, Message{}
+	issues, err := Run(file, fset, settings)
+	if err != nil {
+		return nil, fmt.Errorf("run linter: %v", err)
 	}
 
-	// Get last element from comment group - it can be either
-	// last (or single) line for "//"-comment, or multiline string
-	// for "/*"-comment
-	last := group.List[len(group.List)-1]
+	// slice -> map
+	m := map[int]Issue{}
+	for _, iss := range issues {
+		m[iss.Pos.Line] = iss
+	}
 
-	line, ok := checkComment(last.Text)
-	if ok {
-		return true, Message{}
+	// Replace lines from issues
+	fixed := make([]byte, 0, len(content))
+	for i, line := range strings.Split(string(content), "\n") {
+		newline := line
+		if iss, ok := m[i+1]; ok {
+			newline = iss.Replacement
+		}
+		fixed = append(fixed, []byte(newline+"\n")...)
 	}
-	pos := fset.Position(last.Slash)
-	pos.Line += line
-	return false, Message{
-		Pos:     pos,
-		Message: "Top level comment should end in a period",
-	}
+	fixed = fixed[:len(fixed)-1] // trim last "\n"
+
+	return fixed, nil
 }
 
-func checkComment(comment string) (line int, ok bool) {
-	// Check last line of "//"-comment
-	if strings.HasPrefix(comment, "//") {
-		comment = strings.TrimPrefix(comment, "//")
-		return 0, checkLastChar(comment)
+// Replace rewrites original file with it's fixed version.
+func Replace(path string, file *ast.File, fset *token.FileSet, settings Settings) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("check file: %v", err)
+	}
+	mode := info.Mode()
+
+	fixed, err := Fix(path, file, fset, settings)
+	if err != nil {
+		return fmt.Errorf("fix issues: %v", err)
 	}
 
-	// Check multiline "/*"-comment block
-	lines := strings.Split(comment, "\n")
-	var i int
-	for i = len(lines) - 1; i >= 0; i-- {
-		if s := strings.TrimSpace(lines[i]); s == "*/" || s == "" {
-			continue
-		}
-		break
+	if err := ioutil.WriteFile(path, fixed, mode); err != nil {
+		return fmt.Errorf("write file: %v", err)
 	}
-	comment = strings.TrimPrefix(lines[i], "/*")
-	comment = strings.TrimSuffix(comment, "*/")
-	return i, checkLastChar(comment)
+	return nil
 }
 
-func checkLastChar(s string) bool {
-	// Don't check comments starting with space indentation - they may
-	// contain code examples, which shouldn't end with period
-	if strings.HasPrefix(s, "  ") || strings.HasPrefix(s, "\t") {
-		return true
-	}
-	s = strings.TrimSpace(s)
-	if tags.MatchString(s) || endURL.MatchString(s) || strings.HasPrefix(s, "+build") {
-		return true
-	}
-	// Don't check empty lines
-	if s == "" {
-		return true
-	}
-	for _, ch := range lastChars {
-		if string(s[len(s)-1]) == ch {
-			return true
+// sortIssues sorts by filename, line and column.
+func sortIssues(iss []Issue) {
+	sort.Slice(iss, func(i, j int) bool {
+		if iss[i].Pos.Filename != iss[j].Pos.Filename {
+			return iss[i].Pos.Filename < iss[j].Pos.Filename
 		}
-	}
-	return false
+		if iss[i].Pos.Line != iss[j].Pos.Line {
+			return iss[i].Pos.Line < iss[j].Pos.Line
+		}
+		return iss[i].Pos.Column < iss[j].Pos.Column
+	})
 }

@@ -5,17 +5,17 @@ import (
 	"go/token"
 	"go/types"
 
-	"github.com/go-lintpack/lintpack"
-	"github.com/go-lintpack/lintpack/astwalk"
+	"github.com/go-critic/go-critic/checkers/internal/astwalk"
+	"github.com/go-critic/go-critic/framework/linter"
 	"github.com/go-toolsmith/astcast"
 	"github.com/go-toolsmith/astp"
 )
 
 func init() {
-	var info lintpack.CheckerInfo
+	var info linter.CheckerInfo
 	info.Name = "truncateCmp"
 	info.Tags = []string{"diagnostic", "experimental"}
-	info.Params = lintpack.CheckerParams{
+	info.Params = linter.CheckerParams{
 		"skipArchDependent": {
 			Value: true,
 			Usage: "whether to skip int/uint/uintptr types",
@@ -31,16 +31,16 @@ func f(x int32, int16) bool {
   return x < int32(y)
 }`
 
-	collection.AddChecker(&info, func(ctx *lintpack.CheckerContext) lintpack.FileWalker {
+	collection.AddChecker(&info, func(ctx *linter.CheckerContext) (linter.FileWalker, error) {
 		c := &truncateCmpChecker{ctx: ctx}
 		c.skipArchDependent = info.Params.Bool("skipArchDependent")
-		return astwalk.WalkerForExpr(c)
+		return astwalk.WalkerForExpr(c), nil
 	})
 }
 
 type truncateCmpChecker struct {
 	astwalk.WalkHandler
-	ctx *lintpack.CheckerContext
+	ctx *linter.CheckerContext
 
 	skipArchDependent bool
 }
@@ -87,11 +87,11 @@ func (c *truncateCmpChecker) checkCmp(cmpX, cmpY ast.Expr) {
 	y := cmpY
 
 	// Check that both x and y are signed or unsigned int-typed.
-	xtyp, ok := c.ctx.TypesInfo.TypeOf(x).Underlying().(*types.Basic)
+	xtyp, ok := c.ctx.TypeOf(x).Underlying().(*types.Basic)
 	if !ok || xtyp.Info()&types.IsInteger == 0 {
 		return
 	}
-	ytyp, ok := c.ctx.TypesInfo.TypeOf(y).Underlying().(*types.Basic)
+	ytyp, ok := c.ctx.TypeOf(y).Underlying().(*types.Basic)
 	if !ok || xtyp.Info() != ytyp.Info() {
 		return
 	}
