@@ -125,6 +125,7 @@ func Provider() terraform.ResourceProvider {
 			"github_repository_pull_requests":      dataSourceGithubRepositoryPullRequests(),
 			"github_team":                          dataSourceGithubTeam(),
 			"github_user":                          dataSourceGithubUser(),
+			"github_users":                         dataSourceGithubUsers(),
 		},
 	}
 
