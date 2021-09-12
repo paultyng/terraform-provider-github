@@ -61,6 +61,12 @@ func skipUnlessMode(t *testing.T, providerMode string) {
 		} else {
 			t.Log("GITHUB_TOKEN and GITHUB_ORGANIZATION environment variables should be set")
 		}
+	case enterprise:
+		if os.Getenv("GITHUB_TOKEN") != "" && os.Getenv("ENTERPRISE_ACCOUNT") != "" {
+			return
+		} else {
+			t.Log("GITHUB_TOKEN and ENTERPRISE_ACCOUNT environment variables should be set")
+		}
 	}
 
 	t.Skipf("Skipping %s which requires %s mode", t.Name(), providerMode)
@@ -125,3 +131,4 @@ func testOwnerFunc() string {
 const anonymous = "anonymous"
 const individual = "individual"
 const organization = "organization"
+const enterprise = "enterprise"
