@@ -370,7 +370,7 @@ github.com/ryancurrah/gomodguard
 # github.com/securego/gosec v0.0.0-20200316084457-7da9f46445fd
 github.com/securego/gosec
 github.com/securego/gosec/rules
-# github.com/shurcooL/githubv4 v0.0.0-20201206200315-234843c633fa
+# github.com/shurcooL/githubv4 v0.0.0-20210725200734-83ba7b4c9228
 ## explicit
 github.com/shurcooL/githubv4
 # github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
