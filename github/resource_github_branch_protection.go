@@ -48,6 +48,11 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			PROTECTION_REQUIRES_CONVERSATION_RESOLUTION: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			PROTECTION_REQUIRES_APPROVING_REVIEWS: {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -136,23 +141,24 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 	input := githubv4.CreateBranchProtectionRuleInput{
-		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
-		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
-		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
-		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
-		Pattern:                      githubv4.String(data.Pattern),
-		PushActorIDs:                 githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
-		RepositoryID:                 githubv4.NewID(githubv4.ID(data.RepositoryID)),
-		RequiredApprovingReviewCount: githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
-		RequiredStatusCheckContexts:  githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
-		RequiresApprovingReviews:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
-		RequiresCodeOwnerReviews:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
-		RequiresCommitSignatures:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
-		RequiresStatusChecks:         githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
-		RequiresStrictStatusChecks:   githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
-		RestrictsPushes:              githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
-		RestrictsReviewDismissals:    githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
-		ReviewDismissalActorIDs:      githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
+		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
+		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
+		Pattern:                        githubv4.String(data.Pattern),
+		PushActorIDs:                   githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
+		RepositoryID:                   githubv4.NewID(githubv4.ID(data.RepositoryID)),
+		RequiredApprovingReviewCount:   githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
+		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
+		RequiresApprovingReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
+		RequiresCodeOwnerReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
+		RequiresCommitSignatures:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
+		RequiresConversationResolution: githubv4.NewBoolean(githubv4.Boolean(data.RequiresConversationResolution)),
+		RequiresStatusChecks:           githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
+		RequiresStrictStatusChecks:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
+		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
+		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
+		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 	}
 
 	ctx := context.Background()
@@ -217,6 +223,11 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_COMMIT_SIGNATURES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
+	err = d.Set(PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.RequiresConversationResolution)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_REQUIRES_CONVERSATION_RESOLUTION, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
 	approvingReviews := setApprovingReviews(protection)
 	err = d.Set(PROTECTION_REQUIRES_APPROVING_REVIEWS, approvingReviews)
 	if err != nil {
@@ -251,23 +262,24 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 	input := githubv4.UpdateBranchProtectionRuleInput{
-		BranchProtectionRuleID:       d.Id(),
-		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
-		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
-		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
-		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
-		Pattern:                      githubv4.NewString(githubv4.String(data.Pattern)),
-		PushActorIDs:                 githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
-		RequiredApprovingReviewCount: githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
-		RequiredStatusCheckContexts:  githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
-		RequiresApprovingReviews:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
-		RequiresCodeOwnerReviews:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
-		RequiresCommitSignatures:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
-		RequiresStatusChecks:         githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
-		RequiresStrictStatusChecks:   githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
-		RestrictsPushes:              githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
-		RestrictsReviewDismissals:    githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
-		ReviewDismissalActorIDs:      githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
+		BranchProtectionRuleID:         d.Id(),
+		AllowsDeletions:                githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
+		DismissesStaleReviews:          githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
+		IsAdminEnforced:                githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
+		Pattern:                        githubv4.NewString(githubv4.String(data.Pattern)),
+		PushActorIDs:                   githubv4NewIDSlice(githubv4IDSlice(data.PushActorIDs)),
+		RequiredApprovingReviewCount:   githubv4.NewInt(githubv4.Int(data.RequiredApprovingReviewCount)),
+		RequiredStatusCheckContexts:    githubv4NewStringSlice(githubv4StringSlice(data.RequiredStatusCheckContexts)),
+		RequiresApprovingReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresApprovingReviews)),
+		RequiresCodeOwnerReviews:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCodeOwnerReviews)),
+		RequiresCommitSignatures:       githubv4.NewBoolean(githubv4.Boolean(data.RequiresCommitSignatures)),
+		RequiresConversationResolution: githubv4.NewBoolean(githubv4.Boolean(data.RequiresConversationResolution)),
+		RequiresStatusChecks:           githubv4.NewBoolean(githubv4.Boolean(data.RequiresStatusChecks)),
+		RequiresStrictStatusChecks:     githubv4.NewBoolean(githubv4.Boolean(data.RequiresStrictStatusChecks)),
+		RestrictsPushes:                githubv4.NewBoolean(githubv4.Boolean(data.RestrictsPushes)),
+		RestrictsReviewDismissals:      githubv4.NewBoolean(githubv4.Boolean(data.RestrictsReviewDismissals)),
+		ReviewDismissalActorIDs:        githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 	}
 
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

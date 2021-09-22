@@ -140,6 +140,11 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"require_conversation_resolution": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -237,6 +242,7 @@ func resourceGithubBranchProtectionV3Read(d *schema.ResourceData, meta interface
 	d.Set("repository", repoName)
 	d.Set("branch", branch)
 	d.Set("enforce_admins", githubProtection.GetEnforceAdmins().Enabled)
+	d.Set("require_conversation_resolution", githubProtection.GetRequiredConversationResolution().Enabled)
 
 	if err := flattenAndSetRequiredStatusChecks(d, githubProtection); err != nil {
 		return fmt.Errorf("Error setting required_status_checks: %v", err)
