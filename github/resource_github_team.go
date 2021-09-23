@@ -44,8 +44,9 @@ func resourceGithubTeam() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
 			"parent_team_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "ID or slug of parent team",
 			},
 			"ldap_dn": {
 				Type:     schema.TypeString,
@@ -93,9 +94,12 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
 
-	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		newTeam.ParentTeamID = &id
+	if parentTeamIdString, ok := d.GetOk("parent_team_id"); ok {
+		teamId, err := getTeamID(parentTeamIdString.(string), meta)
+		if err != nil {
+			return err
+		}
+		newTeam.ParentTeamID = &teamId
 	}
 	ctx := context.Background()
 
@@ -168,7 +172,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", team.GetName())
 	d.Set("privacy", team.GetPrivacy())
 	if parent := team.Parent; parent != nil {
-		d.Set("parent_team_id", parent.GetID())
+		d.Set("parent_team_id", strconv.FormatInt(parent.GetID(), 10))
 	} else {
 		d.Set("parent_team_id", "")
 	}
@@ -194,9 +198,12 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 		Description: github.String(d.Get("description").(string)),
 		Privacy:     github.String(d.Get("privacy").(string)),
 	}
-	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
-		id := int64(parentTeamID.(int))
-		editedTeam.ParentTeamID = &id
+	if parentTeamIdString, ok := d.GetOk("parent_team_id"); ok {
+		teamId, err := getTeamID(parentTeamIdString.(string), meta)
+		if err != nil {
+			return err
+		}
+		editedTeam.ParentTeamID = &teamId
 	}
 
 	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
