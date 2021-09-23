@@ -122,6 +122,7 @@ func Provider() terraform.ResourceProvider {
 			"github_release":                       dataSourceGithubRelease(),
 			"github_repositories":                  dataSourceGithubRepositories(),
 			"github_repository":                    dataSourceGithubRepository(),
+			"github_repository_file":               dataSourceGithubRepositoryFile(),
 			"github_repository_milestone":          dataSourceGithubRepositoryMilestone(),
 			"github_repository_pull_request":       dataSourceGithubRepositoryPullRequest(),
 			"github_repository_pull_requests":      dataSourceGithubRepositoryPullRequests(),
