@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/shurcooL/githubv4"
 	"log"
 	"net/http"
 	"regexp"
@@ -325,23 +326,35 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
 
-			templateRepoReq := github.TemplateRepoRequest{
-				Name:        &repoName,
-				Owner:       &owner,
-				Description: github.String(d.Get("description").(string)),
-				Private:     github.Bool(isPrivate),
-			}
-
-			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
-				templateRepoOwner,
-				templateRepo,
-				&templateRepoReq,
-			)
+			templateRepoNodeID, err := getRepositoryIDByNameAndOwner(templateRepo, templateRepoOwner, meta)
 			if err != nil {
 				return err
 			}
 
-			d.SetId(*repo.Name)
+			var mutate struct {
+				CloneTemplateRepository struct {
+					Repository struct {
+						Name githubv4.String
+					}
+				} `graphql:"cloneTemplateRepository(input: $input)"`
+			}
+
+			input := githubv4.CloneTemplateRepositoryInput{
+				RepositoryID: templateRepoNodeID,
+				Name:         githubv4.String(repoName),
+				OwnerID:      meta.(*Owner).nodeID,
+				Visibility:   githubv4.RepositoryVisibility(strings.ToUpper(calculateVisibility(d))),
+				Description:  githubv4.NewString(githubv4.String(d.Get("description").(string))),
+			}
+
+			ctx := context.Background()
+			client := meta.(*Owner).v4client
+			err = client.Mutate(ctx, &mutate, input, nil)
+			if err != nil {
+				return err
+			}
+
+			d.SetId(string(mutate.CloneTemplateRepository.Repository.Name))
 		}
 	} else {
 		// Create without a repository template

@@ -9,6 +9,10 @@ import (
 )
 
 func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
+	return getRepositoryIDByNameAndOwner(name, meta.(*Owner).name, meta)
+}
+
+func getRepositoryIDByNameAndOwner(name, owner string, meta interface{}) (githubv4.ID, error) {
 
 	// Interpret `name` as a node ID
 	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
@@ -23,7 +27,7 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 		} `graphql:"repository(owner:$owner, name:$name)"`
 	}
 	variables := map[string]interface{}{
-		"owner": githubv4.String(meta.(*Owner).name),
+		"owner": githubv4.String(owner),
 		"name":  githubv4.String(name),
 	}
 	ctx := context.Background()
