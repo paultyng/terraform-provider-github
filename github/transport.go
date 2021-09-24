@@ -34,7 +34,7 @@ func (ett *etagTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 
 	etag := ctx.Value(ctxEtag)
-	if v, ok := etag.(string); ok {
+	if v, ok := etag.(string); ok && v != "" {
 		req.Header.Set("If-None-Match", v)
 	}
 
