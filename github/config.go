@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 
 	"github.com/google/go-github/v38/github"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
@@ -14,10 +15,11 @@ import (
 )
 
 type Config struct {
-	Token    string
-	Owner    string
-	BaseURL  string
-	Insecure bool
+	Token      string
+	Owner      string
+	BaseURL    string
+	Insecure   bool
+	WriteDelay time.Duration
 }
 
 type Owner struct {
@@ -29,14 +31,13 @@ type Owner struct {
 	IsOrganization bool
 }
 
-func RateLimitedHTTPClient(client *http.Client) *http.Client {
+func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
-	client.Transport = NewRateLimitTransport(client.Transport)
+	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay))
 	client.Transport = logging.NewTransport("Github", client.Transport)
 
 	return client
-
 }
 
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
@@ -47,8 +48,7 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client)
-
+	return RateLimitedHTTPClient(client, c.WriteDelay)
 }
 
 func (c *Config) Anonymous() bool {
@@ -57,7 +57,7 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client)
+	return RateLimitedHTTPClient(client, c.WriteDelay)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
@@ -74,7 +74,6 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 	}
 
 	return githubv4.NewEnterpriseClient(uv4.String(), client), nil
-
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
@@ -96,7 +95,6 @@ func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
 	v3client.BaseURL = uv3
 
 	return v3client, nil
-
 }
 
 func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
