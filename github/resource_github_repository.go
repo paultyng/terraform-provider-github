@@ -176,6 +176,12 @@ func resourceGithubRepository() *schema.Resource {
 				Default:     false,
 				Description: "Set to 'true' to allow auto-merging pull requests on the repository.",
 			},
+			"allow_forking": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Set to 'true' to allow private forks.",
+			},
 			"squash_merge_commit_title": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -492,6 +498,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 		AllowSquashMerge:         github.Bool(d.Get("allow_squash_merge").(bool)),
 		AllowRebaseMerge:         github.Bool(d.Get("allow_rebase_merge").(bool)),
 		AllowAutoMerge:           github.Bool(d.Get("allow_auto_merge").(bool)),
+		AllowForking:             github.Bool(d.Get("allow_forking").(bool)),
 		DeleteBranchOnMerge:      github.Bool(d.Get("delete_branch_on_merge").(bool)),
 		WebCommitSignoffRequired: github.Bool(d.Get("web_commit_signoff_required").(bool)),
 		AutoInit:                 github.Bool(d.Get("auto_init").(bool)),
@@ -682,6 +689,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	// GitHub API doesn't respond following parameters when repository is archived
 	if !d.Get("archived").(bool) {
 		d.Set("allow_auto_merge", repo.GetAllowAutoMerge())
+		d.Set("allow_forking", repo.GetAllowForking())
 		d.Set("allow_merge_commit", repo.GetAllowMergeCommit())
 		d.Set("allow_rebase_merge", repo.GetAllowRebaseMerge())
 		d.Set("allow_squash_merge", repo.GetAllowSquashMerge())

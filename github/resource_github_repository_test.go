@@ -36,6 +36,7 @@ func TestAccGithubRepositories(t *testing.T) {
 				allow_squash_merge          = false
 				allow_rebase_merge          = false
 				allow_auto_merge            = true
+				allow_forking               = true
 				merge_commit_title          = "MERGE_MESSAGE"
 				merge_commit_message        = "PR_TITLE"
 				auto_init                   = false
@@ -54,6 +55,10 @@ func TestAccGithubRepositories(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_repository.test", "allow_auto_merge",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "allow_forking",
 				"true",
 			),
 			resource.TestCheckResourceAttr(
