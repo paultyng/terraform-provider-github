@@ -1,10 +1,8 @@
 package checkers
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
-	"go/types"
 
 	"golang.org/x/tools/go/analysis"
 
@@ -137,36 +135,4 @@ func (checker Empty) checkNotEmpty(pass *analysis.Pass, call *CallMeta) *analysi
 		}
 	}
 	return nil
-}
-
-var lenObj = types.Universe.Lookup("len")
-
-func isLenCallAndZero(pass *analysis.Pass, a, b ast.Expr) (ast.Expr, bool) {
-	lenArg, ok := isBuiltinLenCall(pass, a)
-	return lenArg, ok && isZero(b)
-}
-
-func isBuiltinLenCall(pass *analysis.Pass, e ast.Expr) (ast.Expr, bool) {
-	ce, ok := e.(*ast.CallExpr)
-	if !ok {
-		return nil, false
-	}
-
-	if analysisutil.IsObj(pass.TypesInfo, ce.Fun, lenObj) && len(ce.Args) == 1 {
-		return ce.Args[0], true
-	}
-	return nil, false
-}
-
-func isZero(e ast.Expr) bool {
-	return isIntNumber(e, 0)
-}
-
-func isOne(e ast.Expr) bool {
-	return isIntNumber(e, 1)
-}
-
-func isIntNumber(e ast.Expr, v int) bool {
-	bl, ok := e.(*ast.BasicLit)
-	return ok && bl.Kind == token.INT && bl.Value == fmt.Sprintf("%d", v)
 }

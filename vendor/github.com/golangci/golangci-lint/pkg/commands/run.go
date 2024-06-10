@@ -147,14 +147,15 @@ func newRunCommand(logger logutils.Log, info BuildInfo) *runCommand {
 	return c
 }
 
-func (c *runCommand) persistentPreRunE(cmd *cobra.Command, _ []string) error {
+func (c *runCommand) persistentPreRunE(cmd *cobra.Command, args []string) error {
 	if err := c.startTracing(); err != nil {
 		return err
 	}
 
-	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts.LoaderOptions, c.cfg)
+	loader := config.NewLoader(c.log.Child(logutils.DebugKeyConfigReader), c.viper, cmd.Flags(), c.opts.LoaderOptions, c.cfg, args)
 
-	if err := loader.Load(); err != nil {
+	err := loader.Load(config.LoadOptions{CheckDeprecation: true, Validation: true})
+	if err != nil {
 		return fmt.Errorf("can't load config: %w", err)
 	}
 
@@ -408,7 +409,7 @@ func (c *runCommand) setExitCodeIfIssuesFound(issues []result.Issue) {
 }
 
 func (c *runCommand) printDeprecatedLinterMessages(enabledLinters map[string]*linter.Config) {
-	if c.cfg.InternalCmdTest {
+	if c.cfg.InternalCmdTest || os.Getenv(logutils.EnvTestRun) == "1" {
 		return
 	}
 

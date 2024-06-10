@@ -1,13 +1,10 @@
 package checkers
 
 import (
-	"bytes"
 	"go/ast"
 	"go/token"
 
 	"golang.org/x/tools/go/analysis"
-
-	"github.com/Antonboom/testifylint/internal/analysisutil"
 )
 
 // Compares detects situations like
@@ -85,12 +82,4 @@ var tokenToProposedFnInsteadOfFalse = map[token.Token]string{
 	token.GEQ: "Less",
 	token.LSS: "GreaterOrEqual",
 	token.LEQ: "Greater",
-}
-
-// formatAsCallArgs joins a and b and return bytes like `a, b`.
-func formatAsCallArgs(pass *analysis.Pass, a, b ast.Node) []byte {
-	return bytes.Join([][]byte{
-		analysisutil.NodeBytes(pass.Fset, a),
-		analysisutil.NodeBytes(pass.Fset, b),
-	}, []byte(", "))
 }

@@ -913,6 +913,8 @@ func recvPrefix(recv *ast.FieldList) string {
 		return expr.Name + "."
 	case *ast.IndexExpr:
 		return expr.X.(*ast.Ident).Name + "."
+	case *ast.ParenExpr:
+		return expr.X.(*ast.Ident).Name + "."
 	case *ast.IndexListExpr:
 		return expr.X.(*ast.Ident).Name + "."
 	default:

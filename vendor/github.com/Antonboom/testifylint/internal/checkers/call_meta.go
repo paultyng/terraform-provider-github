@@ -114,23 +114,8 @@ func trimTArg(pass *analysis.Pass, args []ast.Expr) []ast.Expr {
 		return args
 	}
 
-	if isTestingTPtr(pass, args[0]) {
+	if implementsTestingT(pass, args[0]) {
 		return args[1:]
 	}
 	return args
-}
-
-func isTestingTPtr(pass *analysis.Pass, arg ast.Expr) bool {
-	assertTestingTObj := analysisutil.ObjectOf(pass.Pkg, testify.AssertPkgPath, "TestingT")
-	requireTestingTObj := analysisutil.ObjectOf(pass.Pkg, testify.RequirePkgPath, "TestingT")
-
-	argType := pass.TypesInfo.TypeOf(arg)
-	if argType == nil {
-		return false
-	}
-
-	return ((assertTestingTObj != nil) &&
-		types.Implements(argType, assertTestingTObj.Type().Underlying().(*types.Interface))) ||
-		((requireTestingTObj != nil) &&
-			types.Implements(argType, requireTestingTObj.Type().Underlying().(*types.Interface)))
 }

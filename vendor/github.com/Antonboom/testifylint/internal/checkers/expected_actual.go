@@ -3,7 +3,6 @@ package checkers
 import (
 	"go/ast"
 	"go/token"
-	"go/types"
 	"regexp"
 
 	"golang.org/x/tools/go/analysis"
@@ -177,39 +176,4 @@ func isExpectedValueFactory(pass *analysis.Pass, ce *ast.CallExpr, pattern *rege
 		return pattern.MatchString(fn.Sel.Name)
 	}
 	return false
-}
-
-func isBasicLit(e ast.Expr) bool {
-	_, ok := e.(*ast.BasicLit)
-	return ok
-}
-
-func isUntypedConst(p *analysis.Pass, e ast.Expr) bool {
-	t := p.TypesInfo.TypeOf(e)
-	if t == nil {
-		return false
-	}
-
-	b, ok := t.(*types.Basic)
-	return ok && b.Info()&types.IsUntyped > 0
-}
-
-func isTypedConst(p *analysis.Pass, e ast.Expr) bool {
-	tt, ok := p.TypesInfo.Types[e]
-	return ok && tt.IsValue() && tt.Value != nil
-}
-
-func isIdentNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	id, ok := e.(*ast.Ident)
-	return ok && pattern.MatchString(id.Name)
-}
-
-func isStructVarNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	s, ok := e.(*ast.SelectorExpr)
-	return ok && isIdentNamedAsExpected(pattern, s.X)
-}
-
-func isStructFieldNamedAsExpected(pattern *regexp.Regexp, e ast.Expr) bool {
-	s, ok := e.(*ast.SelectorExpr)
-	return ok && isIdentNamedAsExpected(pattern, s.Sel)
 }

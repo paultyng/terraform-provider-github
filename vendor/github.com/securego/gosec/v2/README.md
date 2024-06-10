@@ -159,7 +159,7 @@ directory you can supply `./...` as the input argument.
 - G503: Import blocklist: crypto/rc4
 - G504: Import blocklist: net/http/cgi
 - G505: Import blocklist: crypto/sha1
-- G601: Implicit memory aliasing of items from a range statement
+- G601: Implicit memory aliasing of items from a range statement (only for Go 1.21 or lower)
 - G602: Slice access out of bounds
 
 ### Retired rules
@@ -229,6 +229,12 @@ You can also configure the hard-coded credentials rule `G101` with additional pa
     }
 }
 ```
+
+#### Go version
+
+Some rules require a specific Go version which is retrieved from the Go module file present in the project. If this version cannot be found, it will fallback to Go runtime version.
+
+The Go module version is parsed using the `go list` command which in some cases might lead to performance degradation. In this situation, the go module version can be easily provided by setting the environment variable `GOSECGOVERSION=go1.21.1`.
 
 ### Dependencies
 

@@ -55,6 +55,9 @@ func newCheckers(cfg config.Config) ([]checkers.RegularChecker, []checkers.Advan
 		case *checkers.ExpectedActual:
 			c.SetExpVarPattern(cfg.ExpectedActual.ExpVarPattern.Regexp)
 
+		case *checkers.GoRequire:
+			c.SetIgnoreHTTPHandlers(cfg.GoRequire.IgnoreHTTPHandlers)
+
 		case *checkers.RequireError:
 			c.SetFnPattern(cfg.RequireError.FnPattern.Regexp)
 

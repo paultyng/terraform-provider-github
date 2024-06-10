@@ -234,20 +234,18 @@ func check(pass *analysis.Pass) func(node ast.Node) {
 func findNExpr(expr ast.Expr) ast.Expr {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
-		if e.Fun.(*ast.Ident).Name != "len" {
-			return nil
+		if fun, ok := e.Fun.(*ast.Ident); ok && fun.Name == "len" && len(e.Args) == 1 {
+			return findNExpr(e.Args[0])
 		}
 
-		if len(e.Args) != 1 {
-			return nil
-		}
-
-		return findNExpr(e.Args[0])
+		return nil
 	case *ast.BasicLit:
 		return nil
 	case *ast.Ident:
 		return e
 	case *ast.SelectorExpr:
+		return e
+	case *ast.IndexExpr:
 		return e
 	default:
 		return nil
@@ -297,7 +295,19 @@ func identEqual(a, b ast.Expr) bool {
 
 		return identEqual(aT.Sel, selectorB.Sel) && identEqual(aT.X, selectorB.X)
 	case *ast.IndexExpr:
+		indexB, ok := b.(*ast.IndexExpr)
+		if ok {
+			return identEqual(aT.X, indexB.X) && identEqual(aT.Index, indexB.Index)
+		}
+
 		return identEqual(aT.X, b)
+	case *ast.BasicLit:
+		litB, ok := b.(*ast.BasicLit)
+		if !ok {
+			return false
+		}
+
+		return aT.Value == litB.Value
 	default:
 		return false
 	}
