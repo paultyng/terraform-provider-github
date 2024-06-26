@@ -2,6 +2,7 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -65,7 +66,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// for read and write requests. See isWriteMethod for the distinction between them.
 	if rlt.nextRequestDelay > 0 {
 		log.Printf("[DEBUG] Sleeping %s between operations", rlt.nextRequestDelay)
-		time.Sleep(rlt.nextRequestDelay)
+		sleep(req.Context(), rlt.nextRequestDelay)
 	}
 
 	rlt.nextRequestDelay = rlt.calculateNextDelay(req.Method)
@@ -81,6 +82,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// See https://github.com/google/go-github/pull/986
 	r1, r2, err := drainBody(resp.Body)
 	if err != nil {
+		rlt.smartLock(false)
 		return nil, err
 	}
 	resp.Body = r1
@@ -93,7 +95,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 		retryAfter := arlErr.GetRetryAfter()
 		log.Printf("[DEBUG] Abuse detection mechanism triggered, sleeping for %s before retrying",
 			retryAfter)
-		time.Sleep(retryAfter)
+		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
@@ -103,7 +105,7 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 		retryAfter := time.Until(rlErr.Rate.Reset.Time)
 		log.Printf("[DEBUG] Rate limit %d reached, sleeping for %s (until %s) before retrying",
 			rlErr.Rate.Limit, retryAfter, time.Now().Add(retryAfter))
-		time.Sleep(retryAfter)
+		sleep(req.Context(), retryAfter)
 		rlt.smartLock(false)
 		return rlt.RoundTrip(req)
 	}
@@ -111,6 +113,16 @@ func (rlt *RateLimitTransport) RoundTrip(req *http.Request) (*http.Response, err
 	rlt.smartLock(false)
 
 	return resp, nil
+}
+
+func sleep(ctx context.Context, dur time.Duration) {
+	t := time.NewTimer(dur)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+	case <-ctx.Done():
+	}
 }
 
 // smartLock wraps the mutex locking system and performs its operation via a boolean input for locking and unlocking.
