@@ -48,20 +48,27 @@ func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *githu
 		var contexts []interface{}
 		var checks []interface{}
 
-		// TODO: Remove once contexts is fully deprecated.
-		// Flatten contexts
-		for _, c := range rsc.Contexts {
-			// Parse into contexts
-			contexts = append(contexts, c)
-		}
+		// Store check names
+		checksSet := make(map[string]struct{})
 
 		// Flatten checks
 		for _, chk := range rsc.Checks {
+			// Store check context
+			checksSet[chk.Context] = struct{}{}
 			// Parse into checks
 			if chk.AppID != nil {
 				checks = append(checks, fmt.Sprintf("%s:%d", chk.Context, *chk.AppID))
 			} else {
 				checks = append(checks, chk.Context)
+			}
+		}
+
+		// TODO: Remove once contexts is fully deprecated.
+		// Flatten contexts
+		for _, c := range rsc.Contexts {
+			// If the context is not in the checks, parse it into contexts.
+			if _, exists := checksSet[c]; !exists {
+				contexts = append(contexts, c)
 			}
 		}
 
