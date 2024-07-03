@@ -35,6 +35,12 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 				}
 
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
+				}
+
 				rules {
 					creation = true
 
@@ -183,6 +189,12 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						include = ["~ALL"]
 						exclude = []
 					}
+				}
+
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
 				}
 
 				rules {

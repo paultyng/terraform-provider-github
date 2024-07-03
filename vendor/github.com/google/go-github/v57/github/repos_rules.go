@@ -13,8 +13,8 @@ import (
 
 // BypassActor represents the bypass actors from a ruleset.
 type BypassActor struct {
-	ActorID *int64 `json:"actor_id,omitempty"`
-	// Possible values for ActorType are: RepositoryRole, Team, Integration, OrganizationAdmin
+	ActorID *int64 `json:"actor_id"`
+	// Possible values for ActorType are: RepositoryRole, Team, Integration, OrganizationAdmin, DeployKey
 	ActorType *string `json:"actor_type,omitempty"`
 	// Possible values for BypassMode are: always, pull_request
 	BypassMode *string `json:"bypass_mode,omitempty"`

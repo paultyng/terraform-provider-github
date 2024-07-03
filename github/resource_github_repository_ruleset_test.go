@@ -41,6 +41,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
+				}
+
 				rules {
 					creation = true
 
@@ -148,6 +154,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					}
 				}
 
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
+				}
+
 				rules {
 					branch_name_pattern {
 						name     = "test"
@@ -206,6 +218,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 				repository  = github_repository.test.id
 				target      = "branch"
 				enforcement = "active"
+
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
+				}
 
 				rules {
 					creation = true
@@ -288,6 +306,12 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						include = ["~ALL"]
 						exclude = []
 					}
+				}
+
+				bypass_actors {
+					actor_id    = 0
+					actor_type  = "DeployKey"
+					bypass_mode = "always"
 				}
 
 				rules {

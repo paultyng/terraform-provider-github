@@ -49,6 +49,9 @@ func expandBypassActors(input []interface{}) []*github.BypassActor {
 
 		if v, ok := inputMap["actor_type"].(string); ok {
 			actor.ActorType = &v
+			if actor.ActorType != nil && *actor.ActorType == "DeployKey" {
+				actor.ActorID = nil
+			}
 		}
 
 		if v, ok := inputMap["bypass_mode"].(string); ok {
