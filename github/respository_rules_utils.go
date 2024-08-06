@@ -226,6 +226,15 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 		if conditions.RepositoryID != nil {
 			conditionsMap["repository_id"] = conditions.RepositoryID.RepositoryIDs
 		}
+		if conditions.RepositoryProperty != nil {
+			repositoryPropertySlice := make([]map[string]interface{}, 0)
+
+			repositoryPropertySlice = append(repositoryPropertySlice, map[string]interface{}{
+				"include": conditions.RepositoryProperty.Include,
+				"exclude": conditions.RepositoryProperty.Exclude,
+			})
+			conditionsMap["repository_property"] = repositoryPropertySlice
+		}
 	}
 
 	return []interface{}{conditionsMap}
