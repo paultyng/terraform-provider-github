@@ -146,6 +146,8 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 			}
 
 			rulesetConditions.RepositoryID = &github.RulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+		} else if v, ok := inputConditions["repository_property"].([]interface{}); ok && v != nil && len(v) != 0 {
+			rulesetConditions.
 		}
 	}
 
