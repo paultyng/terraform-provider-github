@@ -87,73 +87,108 @@ func expandConditions(input []interface{}, org bool) *github.RulesetConditions {
 
 	// ref_name is available for both repo and org rulesets
 	if v, ok := inputConditions["ref_name"].([]interface{}); ok && v != nil && len(v) != 0 {
-		inputRefName := v[0].(map[string]interface{})
-		include := make([]string, 0)
-		exclude := make([]string, 0)
-
-		for _, v := range inputRefName["include"].([]interface{}) {
-			if v != nil {
-				include = append(include, v.(string))
-			}
-		}
-
-		for _, v := range inputRefName["exclude"].([]interface{}) {
-			if v != nil {
-				exclude = append(exclude, v.(string))
-			}
-		}
-
-		rulesetConditions.RefName = &github.RulesetRefConditionParameters{
-			Include: include,
-			Exclude: exclude,
-		}
+		rulesetConditions.RefName = expandRefNameConditions(v)
 	}
 
 	// org-only fields
 	if org {
 		// repository_name and repository_id
 		if v, ok := inputConditions["repository_name"].([]interface{}); ok && v != nil && len(v) != 0 {
-			inputRepositoryName := v[0].(map[string]interface{})
-			include := make([]string, 0)
-			exclude := make([]string, 0)
-
-			for _, v := range inputRepositoryName["include"].([]interface{}) {
-				if v != nil {
-					include = append(include, v.(string))
-				}
-			}
-
-			for _, v := range inputRepositoryName["exclude"].([]interface{}) {
-				if v != nil {
-					exclude = append(exclude, v.(string))
-				}
-			}
-
-			protected := inputRepositoryName["protected"].(bool)
-
-			rulesetConditions.RepositoryName = &github.RulesetRepositoryNamesConditionParameters{
-				Include:   include,
-				Exclude:   exclude,
-				Protected: &protected,
-			}
+			rulesetConditions.RepositoryName = expandRepositoryNameConditions(v)
 		} else if v, ok := inputConditions["repository_id"].([]interface{}); ok && v != nil && len(v) != 0 {
-			repositoryIDs := make([]int64, 0)
-
-			for _, v := range v {
-				if v != nil {
-					repositoryIDs = append(repositoryIDs, int64(v.(int)))
-				}
-			}
-
-			rulesetConditions.RepositoryID = &github.RulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+			rulesetConditions.RepositoryID = expandRepositoryIDConditions(v)
 		} else if v, ok := inputConditions["repository_property"].([]interface{}); ok && v != nil && len(v) != 0 {
-			rulesetConditions.
+			rulesetConditions.RepositoryProperty = expandRepositoryPropertyConditions(v)
 		}
 	}
 
 	return rulesetConditions
 }
 
+func expandRefNameConditions(v []interface{}) *github.RulesetRefConditionParameters {
+	inputRefName := v[0].(map[string]interface{})
+	include := make([]string, 0)
+	exclude := make([]string, 0)
+
+	for _, v := range inputRefName["include"].([]interface{}) {
+		if v != nil {
+			include = append(include, v.(string))
+		}
+	}
+
+	for _, v := range inputRefName["exclude"].([]interface{}) {
+		if v != nil {
+			exclude = append(exclude, v.(string))
+		}
+	}
+
+	return &github.RulesetRefConditionParameters{
+		Include: include,
+		Exclude: exclude,
+	}
+}
+
+func expandRepositoryNameConditions(v []interface{}) *github.RulesetRepositoryNamesConditionParameters {
+	inputRepositoryName := v[0].(map[string]interface{})
+	include := make([]string, 0)
+	exclude := make([]string, 0)
+
+	for _, v := range inputRepositoryName["include"].([]interface{}) {
+		if v != nil {
+			include = append(include, v.(string))
+		}
+	}
+
+	for _, v := range inputRepositoryName["exclude"].([]interface{}) {
+		if v != nil {
+			exclude = append(exclude, v.(string))
+		}
+	}
+
+	protected := inputRepositoryName["protected"].(bool)
+
+	return &github.RulesetRepositoryNamesConditionParameters{
+		Include:   include,
+		Exclude:   exclude,
+		Protected: &protected,
+	}
+}
+
+func expandRepositoryIDConditions(v []interface{}) *github.RulesetRepositoryIDsConditionParameters {
+
+	repositoryIDs := make([]int64, 0)
+
+	for _, v := range v {
+		if v != nil {
+			repositoryIDs = append(repositoryIDs, int64(v.(int)))
+		}
+	}
+
+	return &github.RulesetRepositoryIDsConditionParameters{RepositoryIDs: repositoryIDs}
+}
+
+func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetRepositoryPropertyConditionParameters {
+	repositoryProperties := v[0].(map[string]interface{})
+	include := make([]github.RulesetRepositoryPropertyTargetParameters, 0)
+	exclude := make([]github.RulesetRepositoryPropertyTargetParameters, 0)
+
+	for _, v := range repositoryProperties["include"].([]interface{}) {
+		if v != nil {
+			include = append(include, v.(github.RulesetRepositoryPropertyTargetParameters))
+		}
+	}
+
+	for _, v := range repositoryProperties["exclude"].([]interface{}) {
+		if v != nil {
+			exclude = append(exclude, v.(github.RulesetRepositoryPropertyTargetParameters))
+		}
+	}
+
+	return &github.RulesetRepositoryPropertyConditionParameters{
+		Include: include,
+		Exclude: exclude,
+	}
+}
 func flattenConditions(conditions *github.RulesetConditions, org bool) []interface{} {
 	if conditions == nil || conditions.RefName == nil {
 		return []interface{}{}
