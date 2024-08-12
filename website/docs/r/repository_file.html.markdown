@@ -78,6 +78,12 @@ The following arguments are supported:
 
 * `overwrite_on_create` - (Optional) Enable overwriting existing files. If set to `true` it will overwrite an existing file with the same name. If set to `false` it will fail if there is an existing file with the same name.
 
+* `use_contents_api` - (Optional) Enable to modify github files with the github contents API, rather than git. Defaults to true.
+
+* `pgp_signing_key` - (Optional) PGP signing key used to sign commits. **NOTE:** This must be used with `use_contents_api` set to `false`.
+
+* `pgp_signing_key_passphrase` - (Optional) Passphrase to unlock PGP signing key used to sign commits. **NOTE:** This must be used with `use_contents_api` set to `false`.
+
 * `autocreate_branch` - (Optional) Automatically create the branch if it could not be found. Defaults to false. Subsequent reads if the branch is deleted will occur from 'autocreate_branch_source_branch'.
 
 * `autocreate_branch_source_branch` - (Optional) The branch name to start from, if 'autocreate_branch' is set. Defaults to 'main'.

@@ -5,6 +5,7 @@ go 1.21
 toolchain go1.22.0
 
 require (
+	github.com/ProtonMail/gopenpgp/v2 v2.7.4
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/google/go-github/v63 v63.0.0
@@ -33,6 +34,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.0 // indirect
 	github.com/ProtonMail/go-crypto v1.1.0-alpha.2 // indirect
+	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
 	github.com/alecthomas/go-check-sumtype v0.1.4 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.4 // indirect
@@ -157,6 +159,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.5.2 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect

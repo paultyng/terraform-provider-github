@@ -6,9 +6,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ProtonMail/gopenpgp/v2/crypto"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+func GenerateKeyMaterial(t *testing.T) (string, string) {
+	key, _ := crypto.GenerateKey(t.Name(), "foo@bar.com", "rsa", 2048)
+	passphrase := "test_pass"
+	key, _ = key.Lock([]byte(passphrase))
+	armoredPrivateKey, _ := key.Armor()
+	return armoredPrivateKey, passphrase
+}
 
 func TestAccGithubRepositoryFile(t *testing.T) {
 
@@ -24,13 +33,17 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			}
 
 			resource "github_repository_file" "test" {
-				repository     = github_repository.test.name
-				branch         = "main"
-				file           = "test"
-				content        = "bar"
-				commit_message = "Managed by Terraform"
-				commit_author  = "Terraform User"
-				commit_email   = "terraform@example.com"
+				repository      = github_repository.test.name
+				branch          = "main"
+				file            = "test"
+				content         = "bar"
+				commit_message  = "Managed by Terraform"
+				commit_author   = "Terraform User"
+				commit_email    = "terraform@example.com"
+				use_contents_api = true
+				pgp_signing_key = null
+				pgp_signing_key_passphrase = null
+
 			}
 		`, randomID)
 
@@ -69,6 +82,34 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 					{
 						Config: config,
 						Check:  check,
+					},
+					{
+						Config: strings.Replace(config,
+							"use_contents_api = true",
+							"use_contents_api = false", 1),
+						Check: check,
+					},
+					{
+						Config: func() string {
+							config := strings.Replace(config,
+								"use_contents_api = true",
+								"use_contents_api = false", 1,
+							)
+
+							armoredPgpKey, PgpPass := GenerateKeyMaterial(t)
+							config = strings.Replace(config,
+								"pgp_signing_key = null",
+								fmt.Sprintf("pgp_signing_key = <<EOT\n%s\nEOT", armoredPgpKey), 1,
+							)
+
+							config = strings.Replace(config,
+								"pgp_signing_key_passphrase = null",
+								fmt.Sprintf("pgp_signing_key_passphrase = \"%s\"", PgpPass), 1,
+							)
+
+							return config
+						}(),
+						Check: check,
 					},
 				},
 			})
