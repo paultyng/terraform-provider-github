@@ -252,6 +252,58 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 								},
 							},
 						},
+						"merge_queue": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Merges must be performed via a merge queue.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"check_response_timeout_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "check_response_timeout_minutes"),
+										Description:      "Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed.",
+									},
+									"grouping_strategy": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"ALLGREEN", "HEADGREEN"}, false), "grouping_strategy"),
+										Description:      "When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN.",
+									},
+									"max_entries_to_build": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "Limit the number of queued pull requests requesting checks and workflow runs at the same time.",
+									},
+									"max_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "max_entries_to_merge"),
+										Description:      "The maximum number of PRs that will be merged together in a group.",
+									},
+									"merge_method": {
+										Type:             schema.TypeString,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"MERGE", "SQUASH", "REBASE"}, false), "merge_method"),
+										Description:      "Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE.",
+									},
+									"min_entries_to_merge": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "min_entries_to_merge"),
+										Description:      "The minimum number of PRs that will be merged together in a group.",
+									},
+									"min_entries_to_merge_wait_minutes": {
+										Type:             schema.TypeInt,
+										Optional:         true,
+										ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 360), "min_entries_to_merge_wait_minutes"),
+										Description:      "The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged.",
+									},
+								},
+							},
+						},
 						"non_fast_forward": {
 							Type:        schema.TypeBool,
 							Optional:    true,

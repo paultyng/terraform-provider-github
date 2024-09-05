@@ -55,6 +55,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 					required_signatures = false
 
+					merge_queue {
+						check_response_timeout_minutes    = 10
+						grouping_strategy                 = "ALLGREEN"
+						max_entries_to_build              = 5
+						max_entries_to_merge              = 5
+						merge_method                      = "MERGE"
+						min_entries_to_merge              = 1
+						min_entries_to_merge_wait_minutes = 60
+					}
+
 					pull_request {
 						required_approving_review_count   = 2
 						required_review_thread_resolution = true
