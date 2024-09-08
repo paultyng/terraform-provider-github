@@ -150,19 +150,19 @@ The `rules` block supports the following:
 
 #### rules.merge_queue ####
 
-* `check_response_timeout_minutes` - (Required) (Number)Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed.
+* `check_response_timeout_minutes` - (Required) (Number)Maximum time for a required status check to report a conclusion. After this much time has elapsed, checks that have not reported a conclusion will be assumed to have failed. Defaults to `60`.
 
-* `grouping_strategy` - (Required) (String)When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN.
+* `grouping_strategy` - (Required) (String)When set to ALLGREEN, the merge commit created by merge queue for each PR in the group must pass all required checks to merge. When set to HEADGREEN, only the commit at the head of the merge group, i.e. the commit containing changes from all of the PRs in the group, must pass its required checks to merge. Can be one of: ALLGREEN, HEADGREEN. Defaults to `ALLGREEN`.
 
-* `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time.
+* `max_entries_to_build` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time.
+* `max_entries_to_merge` - (Required) (Number) Limit the number of queued pull requests requesting checks and workflow runs at the same time. Defaults to `5`.
 
-* `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE.
+* `merge_method` - (Required) (String) Method to use when merging changes from queued pull requests. Can be one of: MERGE, SQUASH, REBASE. Defaults to `MERGE`.
 
-* `min_entries_to_merge` - (Required) (Number) The minimum number of PRs that will be merged together in a group.
+* `min_entries_to_merge` - (Required) (Number) The minimum number of PRs that will be merged together in a group. Defaults to `1`.
 
-* `min_entries_to_merge_wait_minutes` - (Required) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged.
+* `min_entries_to_merge_wait_minutes` - (Required) (Number) The time merge queue should wait after the first PR is added to the queue for the minimum group size to be met. After this time has elapsed, the minimum group size will be ignored and a smaller group will be merged. Defaults to `5`.
 
 #### rules.pull_request ####
 
