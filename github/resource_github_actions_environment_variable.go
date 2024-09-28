@@ -5,9 +5,18 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/google/go-github/v63/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+const (
+	retryDelay    = 10 * time.Second
+	statusPending = "pending"
+	statusReady   = "ready"
 )
 
 func resourceGithubActionsEnvironmentVariable() *schema.Resource {
@@ -79,6 +88,10 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 	}
 
 	d.SetId(buildThreePartID(repoName, envName, name))
+
+	if _, err := waitEnvironmentVariableReady(ctx, client, owner, repoName, envName, name); err != nil {
+		return err
+	}
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
@@ -154,4 +167,37 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 
 	return err
+}
+
+func waitEnvironmentVariableReady(ctx context.Context, client *github.Client, owner, repoName, envName, name string) (*github.ActionsVariable, error) {
+	const timeout = 5 * time.Minute
+	stateconf := &retry.StateChangeConf{
+		Delay:   retryDelay,
+		Pending: []string{statusPending},
+		Refresh: statusEnvironmentVariable(ctx, client, owner, repoName, envName, name),
+		Target:  []string{statusReady},
+		Timeout: timeout,
+	}
+
+	output, err := stateconf.WaitForStateContext(ctx)
+	if v, ok := output.(*github.ActionsVariable); ok {
+		return v, err
+	}
+	return nil, err
+}
+
+func statusEnvironmentVariable(ctx context.Context, client *github.Client, owner, repoName, envName, name string) retry.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		envVar, resp, err := client.Actions.GetEnvVariable(ctx, owner, repoName, envName, name)
+		if err != nil {
+			if resp.StatusCode == http.StatusNotFound {
+				return nil, statusPending, nil
+			}
+		}
+		// GitHub API returns the environment variables in uppercase
+		if envVar.Name == strings.ToUpper(name) {
+			return envVar, statusReady, nil
+		}
+		return nil, statusPending, nil
+	}
 }
