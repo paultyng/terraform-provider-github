@@ -752,6 +752,9 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	// handle visibility updates separately from other fields
 	repoReq.Visibility = nil
 
+	// handle security and analysis separately from other fields
+	repoReq.SecurityAndAnalysis = nil
+
 	// The documentation for `default_branch` states: "This can only be set
 	// after a repository has already been created". However, for backwards
 	// compatibility we need to allow terraform configurations that set
@@ -849,6 +852,17 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	} else {
 		log.Printf("[DEBUG] No privacy update required. private: %v", d.Get("private"))
+	}
+
+	if d.HasChange("security_and_analysis") {
+		repoReq.SecurityAndAnalysis = calculateSecurityAndAnalysis(d)
+		log.Printf("[DEBUG] Updating repository security_and_analysis to %v", repoReq.SecurityAndAnalysis)
+		_, _, err = client.Repositories.Edit(ctx, owner, repoName, repoReq)
+		if err != nil {
+			return err
+		}
+	} else {
+		log.Printf("[DEBUG] No security_and_analysis update required. security_and_analysis: %v", d.Get("security_and_analysis"))
 	}
 
 	return resourceGithubRepositoryRead(d, meta)
