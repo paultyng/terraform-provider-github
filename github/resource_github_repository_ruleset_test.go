@@ -73,6 +73,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						require_last_push_approval        = true
 					}
 
+					merge_queue {
+						check_response_timeout_minutes    = 30
+						grouping_strategy                 = "HEADGREEN"
+						max_entries_to_build              = 4
+						max_entries_to_merge              = 4
+						merge_method                      = SQUASH
+						min_entries_to_merge              = 2
+						min_entries_to_merge_wait_minutes = 10
+					}
+
 					required_status_checks {
 
 						required_check {
@@ -320,6 +330,16 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						require_code_owner_review         = true
 						dismiss_stale_reviews_on_push     = true
 						require_last_push_approval        = true
+					}
+
+					merge_queue {
+						check_response_timeout_minutes    = 30
+						grouping_strategy                 = "HEADGREEN"
+						max_entries_to_build              = 4
+						max_entries_to_merge              = 4
+						merge_method                      = SQUASH
+						min_entries_to_merge              = 2
+						min_entries_to_merge_wait_minutes = 10
 					}
 
 					required_status_checks {
