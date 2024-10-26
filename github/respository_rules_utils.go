@@ -177,6 +177,7 @@ func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetReposito
 			propertyMap := v.(map[string]interface{})
 			property := github.RulesetRepositoryPropertyTargetParameters{
 				Name:   propertyMap["name"].(string),
+				Source: propertyMap["source"].(string),
 				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]interface{})),
 			}
 			include = append(include, property)
@@ -188,6 +189,7 @@ func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetReposito
 			propertyMap := v.(map[string]interface{})
 			property := github.RulesetRepositoryPropertyTargetParameters{
 				Name:   propertyMap["name"].(string),
+				Source: propertyMap["source"].(string),
 				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]interface{})),
 			}
 			exclude = append(exclude, property)
@@ -256,6 +258,7 @@ func flattenRulesetRepositoryPropertyTargetParameters(input []github.RulesetRepo
 	for _, v := range input {
 		propertyMap := make(map[string]interface{})
 		propertyMap["name"] = v.Name
+		propertyMap["source"] = v.Source
 		propertyMap["property_values"] = v.Values
 		result = append(result, propertyMap)
 	}
