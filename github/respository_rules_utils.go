@@ -188,7 +188,7 @@ func expandRepositoryPropertyConditions(v []interface{}) *github.RulesetReposito
 			propertyMap := v.(map[string]interface{})
 			property := github.RulesetRepositoryPropertyTargetParameters{
 				Name:   propertyMap["name"].(string),
-				Values: propertyMap["property_values"].([]string),
+				Values: convertInterfaceSliceToStringSlice(propertyMap["property_values"].([]interface{})),
 			}
 			exclude = append(exclude, property)
 		}
@@ -240,14 +240,27 @@ func flattenConditions(conditions *github.RulesetConditions, org bool) []interfa
 			repositoryPropertySlice := make([]map[string]interface{}, 0)
 
 			repositoryPropertySlice = append(repositoryPropertySlice, map[string]interface{}{
-				"include": conditions.RepositoryProperty.Include,
-				"exclude": conditions.RepositoryProperty.Exclude,
+				"include": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Include),
+				"exclude": flattenRulesetRepositoryPropertyTargetParameters(conditions.RepositoryProperty.Exclude),
 			})
 			conditionsMap["repository_property"] = repositoryPropertySlice
 		}
 	}
 
 	return []interface{}{conditionsMap}
+}
+
+func flattenRulesetRepositoryPropertyTargetParameters(input []github.RulesetRepositoryPropertyTargetParameters) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
+
+	for _, v := range input {
+		propertyMap := make(map[string]interface{})
+		propertyMap["name"] = v.Name
+		propertyMap["property_values"] = v.Values
+		result = append(result, propertyMap)
+	}
+
+	return result
 }
 
 func expandRules(input []interface{}, org bool) []*github.RepositoryRule {

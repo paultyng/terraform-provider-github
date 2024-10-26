@@ -123,7 +123,7 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"include": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										Description: "Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -152,10 +152,32 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 									},
 									"exclude": {
 										Type:        schema.TypeList,
-										Required:    true,
+										Optional:    true,
 										Description: "Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.",
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+
+												"name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name of the repository property to target",
+												},
+												"property_values": {
+													Type:        schema.TypeList,
+													Required:    true,
+													Description: "The values to match for the repository property.",
+													Elem: &schema.Schema{
+														Type: schema.TypeString,
+													},
+												},
+												"source": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													Description:  "The source of the repository property. Defaults to 'custom' if not specified.Can be one of: custom, system",
+													Default:      "custom",
+													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+												},
+											},
 										},
 									},
 								},
