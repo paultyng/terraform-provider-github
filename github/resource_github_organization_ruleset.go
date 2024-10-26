@@ -141,12 +141,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 														Type: schema.TypeString,
 													},
 												},
-												"source": {
-													Type:        schema.TypeString,
-													Optional:    true,
-													Description: "The source of the repository property. Defaults to 'custom' if not specified.Can be one of: custom, system",
-													Default:     "custom",
-												},
+												// Commented out because it is not supported by the API, wait for the upgrade to go-github/v65/github
+												// "source": {
+												// 	Type:        schema.TypeString,
+												// 	Optional:    true,
+												// 	Description: "The source of the repository property. Defaults to 'custom' if not specified.Can be one of: custom, system",
+												// 	Default:     "custom",
+												// },
 											},
 										},
 									},
@@ -170,13 +171,14 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 														Type: schema.TypeString,
 													},
 												},
-												"source": {
-													Type:         schema.TypeString,
-													Optional:     true,
-													Description:  "The source of the repository property. Defaults to 'custom' if not specified.Can be one of: custom, system",
-													Default:      "custom",
-													ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
-												},
+												// Commented out because it is not supported by the API, wait for the upgrade to go-github/v65/github
+												// "source": {
+												// 	Type:         schema.TypeString,
+												// 	Optional:     true,
+												// 	Description:  "The source of the repository property. Defaults to 'custom' if not specified.Can be one of: custom, system",
+												// 	Default:      "custom",
+												// 	ValidateFunc: validation.StringInSlice([]string{"custom", "system"}, false),
+												// },
 											},
 										},
 									},
