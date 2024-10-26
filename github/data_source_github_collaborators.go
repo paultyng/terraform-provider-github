@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -31,6 +31,18 @@ func dataSourceGithubCollaborators() *schema.Resource {
 				}, false), "affiliation"),
 				Optional: true,
 				Default:  "all",
+			},
+			"permission": {
+				Type: schema.TypeString,
+				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{
+					"pull",
+					"triage",
+					"push",
+					"maintain",
+					"admin",
+				}, false), "permission"),
+				Optional: true,
+				Default:  "",
 			},
 			"collaborator": {
 				Type:     schema.TypeList,
@@ -116,15 +128,21 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 	owner := d.Get("owner").(string)
 	repo := d.Get("repository").(string)
 	affiliation := d.Get("affiliation").(string)
+	permission := d.Get("permission").(string)
 
 	options := &github.ListCollaboratorsOptions{
 		Affiliation: affiliation,
+		Permission:  permission,
 		ListOptions: github.ListOptions{
 			PerPage: maxPerPage,
 		},
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, affiliation))
+	if len(permission) == 0 {
+		d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, affiliation))
+	} else {
+		d.SetId(fmt.Sprintf("%s/%s/%s/%s", owner, repo, affiliation, permission))
+	}
 	err := d.Set("owner", owner)
 	if err != nil {
 		return err
@@ -134,6 +152,10 @@ func dataSourceGithubCollaboratorsRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 	err = d.Set("affiliation", affiliation)
+	if err != nil {
+		return err
+	}
+	err = d.Set("permission", permission)
 	if err != nil {
 		return err
 	}

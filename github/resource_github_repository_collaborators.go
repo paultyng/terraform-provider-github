@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"sort"
 	"strconv"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -136,6 +137,7 @@ func flattenUserCollaborators(objs []userCollaborator, invites []invitedCollabor
 
 type teamCollaborator struct {
 	permission string
+	teamID     int64
 	teamSlug   string
 }
 
@@ -143,30 +145,38 @@ func (c teamCollaborator) Empty() bool {
 	return c == teamCollaborator{}
 }
 
-func flattenTeamCollaborator(obj teamCollaborator) interface{} {
+func flattenTeamCollaborator(obj teamCollaborator, teamIDs []int64) interface{} {
 	if obj.Empty() {
 		return nil
 	}
+
+	var teamIDString string
+	if slices.Contains(teamIDs, obj.teamID) {
+		teamIDString = strconv.FormatInt(obj.teamID, 10)
+	} else {
+		teamIDString = obj.teamSlug
+	}
+
 	transformed := map[string]interface{}{
 		"permission": obj.permission,
-		"team_id":    obj.teamSlug,
+		"team_id":    teamIDString,
 	}
 
 	return transformed
 }
 
-func flattenTeamCollaborators(objs []teamCollaborator) []interface{} {
+func flattenTeamCollaborators(objs []teamCollaborator, teamIDs []int64) []interface{} {
 	if objs == nil {
 		return nil
 	}
 
 	sort.SliceStable(objs, func(i, j int) bool {
-		return objs[i].teamSlug < objs[j].teamSlug
+		return objs[i].teamID < objs[j].teamID
 	})
 
 	items := make([]interface{}, len(objs))
 	for i, obj := range objs {
-		items[i] = flattenTeamCollaborator(obj)
+		items[i] = flattenTeamCollaborator(obj, teamIDs)
 	}
 
 	return items
@@ -248,7 +258,7 @@ func listTeams(client *github.Client, isOrg bool, ctx context.Context, owner, re
 		for _, t := range repoTeams {
 			permissionName := getPermission(t.GetPermission())
 
-			teamCollaborators = append(teamCollaborators, teamCollaborator{permissionName, t.GetSlug()})
+			teamCollaborators = append(teamCollaborators, teamCollaborator{permissionName, t.GetID(), t.GetSlug()})
 		}
 
 		if resp.NextPage == 0 {
@@ -376,33 +386,31 @@ func matchUserCollaboratorsAndInvites(
 func matchTeamCollaborators(
 	repoName string, want []interface{}, has []teamCollaborator, meta interface{}) error {
 	client := meta.(*Owner).v3client
+	orgID := meta.(*Owner).id
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
+	remove := make([]teamCollaborator, 0)
 	for _, hasTeam := range has {
 		var wantPerm string
 		for _, w := range want {
 			teamData := w.(map[string]interface{})
 			teamIDString := teamData["team_id"].(string)
-			teamSlug, err := getTeamSlug(teamIDString, meta)
+			teamID, err := getTeamID(teamIDString, meta)
 			if err != nil {
 				return err
 			}
-			if teamSlug == hasTeam.teamSlug {
+			if teamID == hasTeam.teamID {
 				wantPerm = teamData["permission"].(string)
 				break
 			}
 		}
 		if wantPerm == "" { // user should NOT have permission
-			log.Printf("[DEBUG] Removing team %s from repo: %s.", hasTeam.teamSlug, repoName)
-			_, err := client.Teams.RemoveTeamRepoBySlug(ctx, owner, hasTeam.teamSlug, owner, repoName)
-			if err != nil {
-				return err
-			}
+			remove = append(remove, hasTeam)
 		} else if wantPerm != hasTeam.permission { // permission should be updated
-			log.Printf("[DEBUG] Updating team %s permission from %s to %s for repo: %s.", hasTeam.teamSlug, hasTeam.permission, wantPerm, repoName)
-			_, err := client.Teams.AddTeamRepoBySlug(
-				ctx, owner, hasTeam.teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
+			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
+			_, err := client.Teams.AddTeamRepoByID(
+				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -415,14 +423,13 @@ func matchTeamCollaborators(
 	for _, t := range want {
 		teamData := t.(map[string]interface{})
 		teamIDString := teamData["team_id"].(string)
-		teamSlug, err := getTeamSlug(teamIDString, meta)
+		teamID, err := getTeamID(teamIDString, meta)
 		if err != nil {
 			return err
 		}
-		permission := teamData["permission"].(string)
 		var found bool
 		for _, c := range has {
-			if teamSlug == c.teamSlug {
+			if teamID == c.teamID {
 				found = true
 				break
 			}
@@ -430,10 +437,11 @@ func matchTeamCollaborators(
 		if found {
 			continue
 		}
+		permission := teamData["permission"].(string)
 		// team needs to be added
-		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamSlug, permission, repoName)
-		_, err = client.Teams.AddTeamRepoBySlug(
-			ctx, owner, teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
+		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamIDString, permission, repoName)
+		_, err = client.Teams.AddTeamRepoByID(
+			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
@@ -441,6 +449,15 @@ func matchTeamCollaborators(
 			return err
 		}
 	}
+
+	for _, team := range remove {
+		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
+		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -454,6 +471,14 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 	repoName := d.Get("repository").(string)
 	ctx := context.Background()
 
+	teamsMap := make(map[string]struct{})
+	for _, team := range teams {
+		teamIDString := team.(map[string]interface{})["team_id"].(string)
+		if _, found := teamsMap[teamIDString]; found {
+			return fmt.Errorf("duplicate set member: %s", teamIDString)
+		}
+		teamsMap[teamIDString] = struct{}{}
+	}
 	usersMap := make(map[string]struct{})
 	for _, user := range users {
 		username := user.(map[string]interface{})["username"].(string)
@@ -462,26 +487,18 @@ func resourceGithubRepositoryCollaboratorsCreate(d *schema.ResourceData, meta in
 		}
 		usersMap[username] = struct{}{}
 	}
-	teamsMap := make(map[string]struct{})
-	for _, team := range teams {
-		teamID := team.(map[string]interface{})["team_id"].(string)
-		if _, found := teamsMap[teamID]; found {
-			return fmt.Errorf("duplicate set member: %s", teamID)
-		}
-		teamsMap[teamID] = struct{}{}
-	}
 
 	userCollaborators, invitations, teamCollaborators, err := listAllCollaborators(client, isOrg, ctx, owner, repoName)
 	if err != nil {
 		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "repository collaborators (%s/%s)", owner, repoName)
 	}
 
-	err = matchUserCollaboratorsAndInvites(repoName, users, userCollaborators, invitations, meta)
+	err = matchTeamCollaborators(repoName, teams, teamCollaborators, meta)
 	if err != nil {
 		return err
 	}
 
-	err = matchTeamCollaborators(repoName, teams, teamCollaborators, meta)
+	err = matchUserCollaboratorsAndInvites(repoName, users, userCollaborators, invitations, meta)
 	if err != nil {
 		return err
 	}
@@ -509,6 +526,11 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 		invitationIds[i.username] = strconv.FormatInt(i.invitationID, 10)
 	}
 
+	teamIDs := make([]int64, len(teamCollaborators))
+	for i, t := range teamCollaborators {
+		teamIDs[i] = t.teamID
+	}
+
 	err = d.Set("repository", repoName)
 	if err != nil {
 		return err
@@ -517,7 +539,7 @@ func resourceGithubRepositoryCollaboratorsRead(d *schema.ResourceData, meta inte
 	if err != nil {
 		return err
 	}
-	err = d.Set("team", flattenTeamCollaborators(teamCollaborators))
+	err = d.Set("team", flattenTeamCollaborators(teamCollaborators, teamIDs))
 	if err != nil {
 		return err
 	}

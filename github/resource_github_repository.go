@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -751,6 +751,11 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 
 	// handle visibility updates separately from other fields
 	repoReq.Visibility = nil
+
+	if !d.HasChange("security_and_analysis") {
+		repoReq.SecurityAndAnalysis = nil
+		log.Print("[DEBUG] No security_and_analysis update required. Removing this field from the payload.")
+	}
 
 	// The documentation for `default_branch` states: "This can only be set
 	// after a repository has already been created". However, for backwards

@@ -17,13 +17,13 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 	t.Run("creates and manages files", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
+	
 			resource "github_repository" "test" {
 				name                 = "tf-acc-test-%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
-
+	
 			resource "github_repository_file" "test" {
 				repository     = github_repository.test.name
 				branch         = "main"
@@ -34,7 +34,6 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				commit_email   = "terraform@example.com"
 			}
 		`, randomID)
-
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_repository_file.test", "content",
@@ -60,6 +59,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -132,6 +134,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -224,6 +229,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_branch"),
+			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
@@ -261,7 +269,7 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 				auto_init            = true
 				vulnerability_alerts = true
 			}
-
+	
 			resource "github_repository_file" "test" {
 				repository        = github_repository.test.name
 				branch            = "does/not/exist"
@@ -299,6 +307,9 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"github_repository_file.test", "commit_sha",
 			),
+			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch", "true"),
+			resource.TestCheckResourceAttr("github_repository_file.test", "autocreate_branch_source_branch", "main"),
+			resource.TestCheckResourceAttrSet("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
 		testCase := func(t *testing.T, mode string) {

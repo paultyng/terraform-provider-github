@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -64,7 +64,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			}
 
 			resource "github_team" "test" {
-				name = "%[1]s"
+				name = "test"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -75,7 +75,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.slug
+					team_id   = github_team.test.id
 					permission = "pull"
 				}
 			}
@@ -155,8 +155,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "admin" {
 							return fmt.Errorf("expected user.*.permission to be set to admin, was %s", val)
 						}
-						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["slug"] {
-							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["slug"], val)
+						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["id"] {
+							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["id"], val)
 						}
 						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "pull" {
 							return fmt.Errorf("expected team.*.permission to be set to pull, was %s", val)
@@ -238,7 +238,11 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			}
 
 			resource "github_team" "test" {
-				name = "%[1]s"
+				name = "test"
+			}
+
+			resource "github_team" "test2" {
+				name = "test2"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -253,7 +257,11 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.slug
+					team_id   = github_team.test.id
+					permission = "pull"
+				}
+				team {
+					team_id   = github_team.test2.id
 					permission = "pull"
 				}
 			}
@@ -267,7 +275,11 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			}
 
 			resource "github_team" "test" {
-				name = "%[1]s"
+				name = "test"
+			}
+
+			resource "github_team" "test2" {
+				name = "test2"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -278,7 +290,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "push"
 				}
 				team {
-					team_id   = github_team.test.slug
+					team_id   = github_team.test.id
 					permission = "push"
 				}
 			}
@@ -361,8 +373,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 						if strings.HasPrefix(name, "user.") && strings.HasSuffix(name, ".permission") && val != "push" {
 							return fmt.Errorf("expected user.*.permission to be set to push, was %s", val)
 						}
-						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["slug"] {
-							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["slug"], val)
+						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".team_id") && val != teamAttrs["id"] {
+							return fmt.Errorf("expected team.*.team_id to be set to %s, was %s", teamAttrs["id"], val)
 						}
 						if strings.HasPrefix(name, "team.") && strings.HasSuffix(name, ".permission") && val != "push" {
 							return fmt.Errorf("expected team.*.permission to be set to push, was %s", val)
@@ -436,7 +448,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			}
 
 			resource "github_team" "test" {
-				name = "%[1]s"
+				name = "test"
 			}
 
 			resource "github_repository_collaborators" "test_repo_collaborators" {
@@ -451,7 +463,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.slug
+					team_id   = github_team.test.id
 					permission = "pull"
 				}
 			}
@@ -465,9 +477,9 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			}
 
 			resource "github_team" "test" {
-				name = "%[1]s"
+				name = "test"
 			}
-		`, repoName, inOrgUser)
+		`, repoName)
 
 		testCase := func(t *testing.T, mode, config, configUpdate string, testCheck func(state *terraform.State) error) {
 			resource.Test(t, resource.TestCase{

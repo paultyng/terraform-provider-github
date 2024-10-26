@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -85,6 +85,11 @@ func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta interface{})
 
 	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			// If the group is not found, remove it from state
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
