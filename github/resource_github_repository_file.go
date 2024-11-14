@@ -504,11 +504,7 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta interface{}
 	}
 
 	_, _, err := client.Repositories.DeleteFile(ctx, owner, repo, file, opts)
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return err
 }
 
 func autoBranchDiffSuppressFunc(k, _, _ string, d *schema.ResourceData) bool {
