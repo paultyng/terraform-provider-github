@@ -157,11 +157,6 @@ func resourceGithubAppInstallationRepositoriesDelete(d *schema.ResourceData, met
 }
 
 func getAllAccessibleRepos(meta interface{}, idString string) (map[string]int64, int64, error) {
-	err := checkOrganization(meta)
-	if err != nil {
-		return nil, 0, err
-	}
-
 	installationID, err := strconv.ParseInt(idString, 10, 64)
 	if err != nil {
 		return nil, 0, unconvertibleIdErr(idString, err)

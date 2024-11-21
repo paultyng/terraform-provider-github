@@ -63,7 +63,7 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
+			testCase(t, individual)
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {

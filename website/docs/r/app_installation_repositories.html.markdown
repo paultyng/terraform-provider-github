@@ -10,14 +10,14 @@ description: |-
 ~> **Note**: This resource is not compatible with the GitHub App Installation authentication method.
 
 This resource manages relationships between app installations and repositories
-in your GitHub organization.
+in your GitHub organization or your user account.
 
 Creating this resource installs a particular app on multiple repositories.
 
 The app installation and the repositories must all belong to the same
-organization on GitHub. Note: you can review your organization's installations
+organization or user account on GitHub. Note: you can review your organization's installations
 by the following the instructions at this
-[link](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/reviewing-your-organizations-installed-integrations).
+[link](https://docs.github.com/en/github/setting-up-and-managing-organizations-and-teams/reviewing-your-organizations-installed-integrations) or for your user account at this [link](https://docs.github.com/en/apps/using-github-apps/reviewing-and-modifying-installed-github-apps).
 
 ## Example Usage
 
