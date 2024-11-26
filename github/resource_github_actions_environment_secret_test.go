@@ -167,4 +167,59 @@ func TestAccGithubActionsEnvironmentSecret(t *testing.T) {
 
 	})
 
+	t.Run("imports secret without error", func(t *testing.T) {
+		secretValue := "super_secret_value"
+		envName := "environment / test"
+		secretName := "test_plaintext_secret_name"
+		secretValue := "secret_value"
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+						name = "tf-acc-test-%s"
+					}
+
+			resource "github_repository_environment" "test" {
+				repository       = github_repository.test.name
+				environment      = "%s"
+			}
+
+			resource "github_actions_environment_secret" "secret" {
+				repository       = github_repository.test.name
+				environment      = github_repository_environment.test.environment
+				secret_name      = "%s"
+				plaintext_value  = "%s"
+			}
+		`, randomID, envName, secretName, secretValue)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+					},
+					{
+						ResourceName:      "github_actions_environment_secret.secret",
+						ImportStateId:     fmt.Sprintf(`tf-acc-test-%s:%s:%s`, randomID, envName, secretName),
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
 }

@@ -3,9 +3,11 @@ package github
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,6 +19,9 @@ func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 		Create: resourceGithubActionsEnvironmentSecretCreateOrUpdate,
 		Read:   resourceGithubActionsEnvironmentSecretRead,
 		Delete: resourceGithubActionsEnvironmentSecretDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceGithubActionsEnvironmentSecretImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
@@ -209,6 +214,42 @@ func resourceGithubActionsEnvironmentSecretDelete(d *schema.ResourceData, meta i
 	_, err = client.Actions.DeleteEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
 
 	return err
+}
+
+func resourceGithubActionsEnvironmentSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Owner).v3client
+	owner := meta.(*Owner).name
+	ctx := context.Background()
+
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<environment>/<secret_name>")
+	}
+
+	d.SetId(buildThreePartID(parts[0], parts[1], parts[2]))
+
+	repoName, envName, secretName, err := parseThreePartID(d.Id(), "repository", "environment", "secret_name")
+	if err != nil {
+		return nil, err
+	}
+
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+
+	secret, _, err := client.Actions.GetEnvSecret(ctx, int(repo.GetID()), escapedEnvName, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Set("repository", repoName)
+	d.Set("secret_name", secretName)
+	d.Set("environment", envName)
+
+	// encrypted_value or plaintext_value can not be imported
+
+	d.Set("created_at", secret.CreatedAt.String())
+	d.Set("updated_at", secret.UpdatedAt.String())
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func getEnvironmentPublicKeyDetails(repoID int64, envName string, meta interface{}) (keyId, pkValue string, err error) {
