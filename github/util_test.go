@@ -1,11 +1,16 @@
 package github
 
 import (
+	"os"
 	"testing"
 	"unicode"
 
 	"github.com/hashicorp/go-cty/cty"
 )
+
+func resourceOwner() string {
+	return os.Getenv("GITHUB_RESOURCE_OWNER")
+}
 
 func TestAccValidateTeamIDFunc(t *testing.T) {
 	// warnings, errors := validateTeamIDFunc(interface{"1234567"})

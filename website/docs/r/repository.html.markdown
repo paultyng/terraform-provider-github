@@ -53,6 +53,9 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the repository.
 
+* `owner` - (Optional) The GitHub organization or user the repository is owned by.
+Defaults to the owner/organization specified in the provider configuration.
+If neither are given, this field defaults to the authenticated user. 
 * `description` - (Optional) A description of the repository.
 
 * `homepage_url` - (Optional) URL of a page describing the project.
@@ -205,8 +208,20 @@ The following additional attributes are exported:
 
 ## Import
 
+Repositories can be imported in two different ways. If the `owner` attribute is being set, the second format is recommended.
+
+### With Name
+
 Repositories can be imported using the `name`, e.g.
 
 ```
 $ terraform import github_repository.terraform terraform
+```
+
+### With Owner and Name
+
+Repositories can also be imported using the `owner` and the `name` of the repository, separated by a `/` character, e.g.
+
+```
+$ terraform import github_repository.terraform foo-org/terraform
 ```

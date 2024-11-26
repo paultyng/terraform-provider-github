@@ -281,3 +281,11 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	}
 	return err
 }
+
+func calculateOwner(d *schema.ResourceData, meta interface{}) string {
+	if value, ok := d.GetOk("owner"); ok {
+		return value.(string)
+	}
+
+	return meta.(*Owner).name
+}

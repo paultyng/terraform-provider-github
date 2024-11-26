@@ -21,13 +21,22 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id>")
+				if len(parts) != 2 && len(parts) != 3 {
+					return nil, fmt.Errorf("invalid ID specified: supplied ID must be written as <repository>/<webhook_id> or <owner>/<repository>/<webhook_id>")
 				}
-				if err := d.Set("repository", parts[0]); err != nil {
-					return nil, err
+				if len(parts) == 3 {
+					if err := d.Set("owner", parts[0]); err != nil {
+						return nil, err
+					}
+					if err := d.Set("repository", parts[1]); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := d.Set("repository", parts[0]); err != nil {
+						return nil, err
+					}
 				}
-				d.SetId(parts[1])
+				d.SetId(parts[len(parts)-1])
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -41,6 +50,13 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "The repository of the webhook.",
+			},
+			"owner": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The GitHub organization or user the repository is owned by. Defaults to the owner/organization specified in the provider configuration. If neither are given, this field defaults to the authenticated user.",
 			},
 			"events": {
 				Type:        schema.TypeSet,
@@ -95,7 +111,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	ctx := context.Background()
@@ -123,7 +139,7 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -141,21 +157,36 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 				return nil
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository webhook %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
+				// This webhook could still exist if our token didn't have
+				// permissions to get the hook. We list all hooks and capture
+				// the error, just to be sure. If we get no error from listing
+				// hooks, then we know 1) we have access to hooks, 2) this
+				// hook doesn't exist, and 3) we should remove it from state.
+				listHooksOptions := &github.ListOptions{
+					PerPage: 1,
+				}
+				_, _, listHooksErr := client.Repositories.ListHooks(ctx, owner, repoName, listHooksOptions)
+				if _, listHooksOk := listHooksErr.(*github.ErrorResponse); listHooksOk {
+					log.Printf("[INFO] Removing repository webhook %s from state because it no longer exists in GitHub",
+						d.Id())
+					d.SetId("")
+					return nil
+				}
 			}
 		}
 		return err
 	}
-	if err = d.Set("url", hook.GetURL()); err != nil {
+
+	if err := d.Set("url", hook.GetURL()); err != nil {
 		return err
 	}
-	if err = d.Set("active", hook.GetActive()); err != nil {
+	if err := d.Set("active", hook.GetActive()); err != nil {
 		return err
 	}
-	if err = d.Set("events", hook.Events); err != nil {
+	if err := d.Set("events", hook.Events); err != nil {
+		return err
+	}
+	if err := d.Set("owner", owner); err != nil {
 		return err
 	}
 
@@ -181,7 +212,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -201,7 +232,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	owner := meta.(*Owner).name
+	owner := calculateOwner(d, meta)
 	repoName := d.Get("repository").(string)
 	hookID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
