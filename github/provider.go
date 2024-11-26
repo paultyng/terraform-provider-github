@@ -192,6 +192,7 @@ func Provider() *schema.Provider {
 			"github_user_gpg_key":                                                   resourceGithubUserGpgKey(),
 			"github_user_invitation_accepter":                                       resourceGithubUserInvitationAccepter(),
 			"github_user_ssh_key":                                                   resourceGithubUserSshKey(),
+			"github_user_ssh_signing_key":                                           resourceGithubUserSshSigningKey(),
 			"github_enterprise_organization":                                        resourceGithubEnterpriseOrganization(),
 			"github_enterprise_actions_runner_group":                                resourceGithubActionsEnterpriseRunnerGroup(),
 		},
