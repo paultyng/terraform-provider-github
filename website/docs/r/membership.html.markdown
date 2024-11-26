@@ -13,6 +13,9 @@ This resource allows you to add/remove users from your organization. When applie
 an invitation will be sent to the user to become part of the organization. When
 destroyed, either the invitation will be cancelled or the user will be removed.
 
+~> **NOTE:** This resource **does not** work with GitHub Enterprise which requires
+users to be provisioned through an identity provider (IdP).
+
 ## Example Usage
 
 ```hcl
