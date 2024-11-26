@@ -181,19 +181,25 @@ func resourceGithubReleaseCreateUpdate(d *schema.ResourceData, meta interface{})
 		if resp != nil {
 			log.Printf("[DEBUG] Response from creating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	} else {
-		number := d.Get("number").(int64)
+		id, err := strconv.ParseInt(d.Id(), 10, 64)
+		if err != nil {
+			return err
+		}
 		log.Printf("[DEBUG] Updating release: %d:%s (%s/%s)",
-			number, targetCommitish, owner, repoName)
-		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, number, req)
+			id, targetCommitish, owner, repoName)
+		release, resp, err = client.Repositories.EditRelease(ctx, owner, repoName, id, req)
 		if resp != nil {
 			log.Printf("[DEBUG] Response from updating release: %#v", *resp)
 		}
+		if err != nil {
+			return err
+		}
 	}
 
-	if err != nil {
-		return err
-	}
 	transformResponseToResourceData(d, release, repoName)
 	return nil
 }
