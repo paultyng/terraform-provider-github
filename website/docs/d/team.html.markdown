@@ -31,6 +31,7 @@ data "github_team" "example" {
 * `name` - the team's full name.
 * `description` - the team's description.
 * `privacy` - the team's privacy type.
+* `notification_setting` - the team's notification setting.
 * `permission` - the team's permission level.
 * `members` - List of team members (list of GitHub usernames). Not returned if `summary_only = true`
 * `repositories` - List of team repositories (list of repo names). Not returned if `summary_only = true`

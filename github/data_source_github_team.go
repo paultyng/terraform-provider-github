@@ -33,6 +33,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"notification_setting": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"permission": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -208,6 +212,9 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
+		return err
+	}
+	if err = d.Set("notification_setting", team.GetNotificationSetting()); err != nil {
 		return err
 	}
 	if err = d.Set("permission", team.GetPermission()); err != nil {

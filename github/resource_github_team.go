@@ -46,6 +46,13 @@ func resourceGithubTeam() *schema.Resource {
 				Description:      "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
 				ValidateDiagFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
+			"notification_setting": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          "notifications_enabled",
+				Description:      "The notification setting for the team. Must be one of 'notifications_enabled' or 'notifications_disabled'.",
+				ValidateDiagFunc: validateValueFunc([]string{"notifications_enabled", "notifications_disabled"}),
+			},
 			"parent_team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -115,9 +122,10 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 
 	newTeam := github.NewTeam{
-		Name:        name,
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Name:                name,
+		Description:         github.String(d.Get("description").(string)),
+		Privacy:             github.String(d.Get("privacy").(string)),
+		NotificationSetting: github.String(d.Get("notification_setting").(string)),
 	}
 
 	if ldapDN := d.Get("ldap_dn").(string); ldapDN != "" {
@@ -222,6 +230,9 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
 		return err
 	}
+	if err = d.Set("notification_setting", team.GetNotificationSetting()); err != nil {
+		return err
+	}
 	if parent := team.Parent; parent != nil {
 		if err = d.Set("parent_team_id", strconv.FormatInt(team.Parent.GetID(), 10)); err != nil {
 			return err
@@ -270,9 +281,10 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
-		Name:        d.Get("name").(string),
-		Description: github.String(d.Get("description").(string)),
-		Privacy:     github.String(d.Get("privacy").(string)),
+		Name:                d.Get("name").(string),
+		Description:         github.String(d.Get("description").(string)),
+		Privacy:             github.String(d.Get("privacy").(string)),
+		NotificationSetting: github.String(d.Get("notification_setting").(string)),
 	}
 	if parentTeamID, ok := d.GetOk("parent_team_id"); ok {
 		teamId, err := getTeamID(parentTeamID.(string), meta)
