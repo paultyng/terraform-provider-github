@@ -12,6 +12,8 @@ import (
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Use github_organization_repository_role resource instead.",
+
 		Create: resourceGithubOrganizationCustomRoleCreate,
 		Read:   resourceGithubOrganizationCustomRoleRead,
 		Update: resourceGithubOrganizationCustomRoleUpdate,
@@ -70,7 +72,6 @@ func resourceGithubOrganizationCustomRoleCreate(d *schema.ResourceData, meta int
 		BaseRole:    github.String(d.Get("base_role").(string)),
 		Permissions: permissionsStr,
 	})
-
 	if err != nil {
 		return fmt.Errorf("error creating GitHub custom repository role %s (%s): %s", orgName, d.Get("name").(string), err)
 	}

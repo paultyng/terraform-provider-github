@@ -7,7 +7,9 @@ description: |-
 
 # github\_organization\_custom\_role
 
-This resource allows you to create and manage custom roles in a GitHub Organization for use in repositories. 
+~> **Note:** This resource is deprecated, please use the `github_organizationrepository_role` resource instead.
+
+This resource allows you to create and manage custom roles in a GitHub Organization for use in repositories.
 
 ~> Note: Custom roles are currently only available in GitHub Enterprise Cloud.
 
