@@ -22,12 +22,12 @@ func TestAccGithubActionsEnvironmentPublicKeyDataSource(t *testing.T) {
 
 			resource "github_repository_environment" "test" {
 				repository = github_repository.test.name
-				name = "tf-acc-test-%[1]s"
+				environment = "tf-acc-test-%[1]s"
 			}
 
 			data "github_actions_environment_public_key" "test" {
 				repository = github_repository.test.name
-				environment = github_repository_environment.test.name
+				environment = github_repository_environment.test.environment
 			}`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
