@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,17 +12,9 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 		Read: dataSourceGithubActionsEnvironmentPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
-			"full_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
-			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"full_name"},
+			"repository": {
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"environment": {
 				Type:     schema.TypeString,
@@ -44,28 +35,12 @@ func dataSourceGithubActionsEnvironmentPublicKey() *schema.Resource {
 func dataSourceGithubActionsEnvironmentPublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 	owner := meta.(*Owner).name
-	var repoName string
+	repository := d.Get("repository").(string)
 
 	envName := d.Get("environment").(string)
 	escapedEnvName := url.PathEscape(envName)
 
-	if fullName, ok := d.GetOk("full_name"); ok {
-		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
-		if err != nil {
-			return err
-		}
-	}
-
-	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
-	}
-
-	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
-	}
-
-	repo, _, err := client.Repositories.Get(context.TODO(), owner, repoName)
+	repo, _, err := client.Repositories.Get(context.TODO(), owner, repository)
 	if err != nil {
 		return err
 	}
