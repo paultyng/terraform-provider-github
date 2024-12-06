@@ -1565,6 +1565,107 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+	t.Run("sets include all branches when true for repositories created with a template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "tf-acc-test-template-include-all-branches-%s"
+				vulnerability_alerts = true
+				template {
+					include_all_branches = true
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, randomID, testOrganization, "terraform-template-module")
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "template.0.owner",
+				testOrganization,
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "template.0.include_all_branches",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("sets include all branches when false for repositories created with a template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name       = "tf-acc-test-template-include-all-branches-%s"
+				vulnerability_alerts = true
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, randomID, testOrganization, "terraform-template-module")
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "template.0.owner",
+				testOrganization,
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "template.0.include_all_branches",
+				"false",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
 
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {

@@ -708,8 +708,10 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	if repo.TemplateRepository != nil {
 		if err = d.Set("template", []interface{}{
 			map[string]interface{}{
-				"owner":      repo.TemplateRepository.Owner.Login,
-				"repository": repo.TemplateRepository.Name,
+				// GitHub API doesn't respond with include_all_branches
+				"include_all_branches": d.Get("template.0.include_all_branches"),
+				"owner":                repo.TemplateRepository.Owner.Login,
+				"repository":           repo.TemplateRepository.Name,
 			},
 		}); err != nil {
 			return err
