@@ -7,6 +7,8 @@ description: |-
 
 # github_project_card
 
+!> **Warning:** This resource no longer works as the [Projects (classic) REST API](https://docs.github.com/en/rest/projects/projects?apiVersion=2022-11-28) has been [removed](https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/) and as such has been deprecated. It will be removed in a future release.
+
 This resource allows you to create and manage cards for GitHub projects.
 
 ## Example Usage
@@ -68,11 +70,11 @@ The following arguments are supported:
 
 * `note` - (Optional) The note contents of the card. Markdown supported.
 
-* `content_id` - (Optional) [`github_issue.issue_id`](issue.html#argument-reference). 
+* `content_id` - (Optional) [`github_issue.issue_id`](issue.html#argument-reference).
 
 * `content_type` - (Optional) Must be either `Issue` or `PullRequest`
 
-**Remarks:** You must either set the `note` attribute or both `content_id` and `content_type`. 
+**Remarks:** You must either set the `note` attribute or both `content_id` and `content_type`.
 See [note example](#example-usage) or [issue example](#example-usage-adding-an-issue-to-a-project) for more information.
 
 ## Import

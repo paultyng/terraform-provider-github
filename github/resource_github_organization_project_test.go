@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccGithubOrganizationProject_basic(t *testing.T) {
+	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
+
 	if err := testAccCheckOrganization(); err != nil {
 		t.Skipf("Skipping because %s.", err.Error())
 	}
@@ -102,7 +104,6 @@ type testAccGithubOrganizationProjectExpectedAttributes struct {
 
 func testAccCheckGithubOrganizationProjectAttributes(project *github.Project, want *testAccGithubOrganizationProjectExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
 		if name := project.GetName(); name != want.Name {
 			return fmt.Errorf("got project %q; want %q", name, want.Name)
 		}
