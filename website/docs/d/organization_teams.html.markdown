@@ -36,12 +36,14 @@ ___
 
 The `team` block consists of:
 
- * `id` - the ID of the team.
- * `node_id` - the Node ID of the team.
- * `slug` - the slug of the team.
- * `name` - the team's full name.
- * `description` - the team's description.
- * `privacy` - the team's privacy type.
+ * `id` - The ID of the team.
+ * `node_id` - The Node ID of the team.
+ * `slug` - The slug of the team.
+ * `name` - The team's full name.
+ * `description` - The team's description.
+ * `privacy` - The team's privacy type.
  * `members` - List of team members. Not returned if `summary_only = true`
  * `repositories` - List of team repositories. Not returned if `summary_only = true`
- * `parent` - the parent team.
+ * `parent_team_id` - The ID of the parent team, if there is one.
+ * `parent_team_slug` - The slug of the parent team, if there is one.
+ * `parent` - (**DEPRECATED**) The parent team, use `parent_team_id` or `parent_team_slug` instead.
