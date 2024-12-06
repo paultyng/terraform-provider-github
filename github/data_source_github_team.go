@@ -43,9 +43,10 @@ func dataSourceGithubTeam() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"repositories": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Deprecated: "Use repositories_detailed instead.",
+				Type:       schema.TypeList,
+				Computed:   true,
+				Elem:       &schema.Schema{Type: schema.TypeString},
 			},
 			"repositories_detailed": {
 				Type:     schema.TypeList,
@@ -54,6 +55,10 @@ func dataSourceGithubTeam() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"repo_id": {
 							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"repo_name": {
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"role_name": {
@@ -168,7 +173,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		repositories_detailed = make([]interface{}, 0, resultsPerPage) //removed this from the loop
+		repositories_detailed = make([]interface{}, 0, resultsPerPage) // removed this from the loop
 
 		for {
 			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
@@ -180,6 +185,7 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 				repositories = append(repositories, v.GetName())
 				repositories_detailed = append(repositories_detailed, map[string]interface{}{
 					"repo_id":   v.GetID(),
+					"repo_name": v.GetName(),
 					"role_name": v.GetRoleName(),
 				})
 			}
