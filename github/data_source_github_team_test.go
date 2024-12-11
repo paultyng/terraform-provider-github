@@ -10,11 +10,8 @@ import (
 )
 
 func TestAccGithubTeamDataSource(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("queries an existing team without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -30,35 +27,20 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -75,69 +57,39 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_team.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
-
 		config := `
 			data "github_team" "test" {
 				slug = ""
 			}
 		`
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`Not Found`),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`Not Found`),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -156,35 +108,20 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_team.test", "repositories.#", "0"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -201,35 +138,72 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_team.test", "node_id"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
+			},
+		})
+	})
+
+	t.Run("get team with repositories without erroring", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name      = "tf-acc-test-%s"
+			auto_init = true
 		}
 
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
+		resource "github_team" "test" {
+			name = "tf-acc-test-%[1]s"
+		}
 
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
+		resource "github_team_repository" "test" {
+			team_id    = github_team.test.id
+			repository = github_repository.test.name
+			permission = "admin"
+		}
 
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
+		data "github_team" "test" {
+			slug = github_team.test.slug
 
+			depends_on = ["github_repository.test", "github_team.test", "github_team_repository.test"]
+		}
+		`, randomID)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttrPair("data.github_team.test", "id", "github_team.test", "id"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "node_id", "github_team.test", "node_id"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "slug", "github_team.test", "slug"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "name", "github_team.test", "name"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "description", "github_team.test", "description"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "privacy", "github_team.test", "privacy"),
+						resource.TestCheckResourceAttrSet("data.github_team.test", "repositories.#"),
+						resource.TestCheckResourceAttr("data.github_team.test", "repositories.#", "1"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories.0", "github_repository.test", "name"),
+						resource.TestCheckResourceAttrSet("data.github_team.test", "repositories_detailed.#"),
+						resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_name", "github_repository.test", "name"),
+						resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "github_team_repository.test", "permission"),
+					),
+				},
+			},
+		})
 	})
 
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -255,38 +229,23 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("github_repository.test", "name", "tf-acc-test"),
 			resource.TestCheckResourceAttr("data.github_team.test", "repositories_detailed.#", "1"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_id", "github_repository.test", "repo_id"),
+			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.repo_name", "github_repository.test", "name"),
 			resource.TestCheckResourceAttrPair("data.github_team.test", "repositories_detailed.0.role_name", "github_team_repository.test", "permission"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeAggregateTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  resource.ComposeAggregateTestCheckFunc(),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-
 }

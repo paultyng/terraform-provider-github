@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,13 +9,12 @@ import (
 )
 
 func TestAccGithubRepositoryCollaborator(t *testing.T) {
-
-	t.Skip("update <username> below to unskip this test run")
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	if len(testAccConf.testExternalUser) == 0 {
+		t.Skip("No external user provided")
+	}
 
 	t.Run("creates invitations without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -25,10 +23,10 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 
 			resource "github_repository_collaborator" "test_repo_collaborator" {
 				repository = "${github_repository.test.name}"
-				username   = "<username>"
+				username   = "%s"
 				permission = "triage"
 			}
-		`, randomID)
+		`, randomID, testAccConf.testExternalUser)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -37,40 +35,20 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 
 	t.Run("creates invitations when repository contains the org name", func(t *testing.T) {
-
-		orgName := os.Getenv("GITHUB_ORGANIZATION")
-
-		if orgName == "" {
-			t.Skip("Set GITHUB_ORGANIZATION to unskip this test run")
-		}
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		configWithOwner := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
@@ -82,7 +60,7 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 				username   = "<username>"
 				permission = "triage"
 			}
-		`, randomID, orgName)
+		`, randomID, testAccConf.owner)
 
 		checkWithOwner := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -91,29 +69,15 @@ func TestAccGithubRepositoryCollaborator(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: configWithOwner,
-						Check:  checkWithOwner,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: configWithOwner,
+					Check:  checkWithOwner,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
 }

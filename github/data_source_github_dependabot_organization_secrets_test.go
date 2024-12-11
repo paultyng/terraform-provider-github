@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
-
 	t.Run("queries organization dependabot secrets from a repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -35,25 +34,19 @@ func TestAccGithubDependabotOrganizationSecretsDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet("data.github_dependabot_organization_secrets.test", "secrets.0.updated_at"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  resource.ComposeTestCheckFunc(),
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
 	})
 }

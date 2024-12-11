@@ -11,19 +11,16 @@ import (
 )
 
 func TestAccGithubRepositoryFile(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("creates and manages files", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
-	
+
 			resource "github_repository" "test" {
 				name                 = "tf-acc-test-%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
-	
+
 			resource "github_repository_file" "test" {
 				repository     = github_repository.test.name
 				branch         = "main"
@@ -64,35 +61,20 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("can be configured to overwrite files on create", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 			  name                 = "tf-acc-test-%s"
@@ -139,41 +121,26 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`refusing to overwrite existing file`),
-					},
-					{
-						Config: strings.Replace(config,
-							"overwrite_on_create = false",
-							"overwrite_on_create = true", 1),
-						Check: check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`refusing to overwrite existing file`),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: strings.Replace(config,
+						"overwrite_on_create = false",
+						"overwrite_on_create = true", 1),
+					Check: check,
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("creates and manages files on default branch if branch is omitted", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -234,42 +201,27 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckNoResourceAttr("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("creates and manages files on auto created branch if branch does not exist", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name                 = "tf-acc-test-%s"
 				auto_init            = true
 				vulnerability_alerts = true
 			}
-	
+
 			resource "github_repository_file" "test" {
 				repository        = github_repository.test.name
 				branch            = "does/not/exist"
@@ -312,36 +264,21 @@ func TestAccGithubRepositoryFile(t *testing.T) {
 			resource.TestCheckResourceAttrSet("github_repository_file.test", "autocreate_branch_source_sha"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config:      config,
-						ExpectError: regexp.MustCompile(`unexpected status code: 404 Not Found`),
-					},
-					{
-						Config: strings.Replace(config,
-							"autocreate_branch = false",
-							"autocreate_branch = true", 1),
-						Check: check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile(`unexpected status code: 404 Not Found`),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: strings.Replace(config,
+						"autocreate_branch = false",
+						"autocreate_branch = true", 1),
+					Check: check,
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 }

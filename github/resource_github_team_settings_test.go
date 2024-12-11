@@ -10,12 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
+func TestAccGithubTeamSettings(t *testing.T) {
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -31,47 +28,26 @@ func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
 			resource.TestCheckResourceAttrSet("github_team_settings.test", "team_id"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						Config: strings.Replace(config,
-							`github_team.test.id`,
-							`github_team.test.slug`, 1),
-						Check: check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: strings.Replace(config,
+						`github_team.test.id`,
+						`github_team.test.slug`, 1),
+					Check: check,
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-}
-
-func TestCanUpdateTeamSettings(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("manages team code review settings", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -115,59 +91,38 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 			),
 		}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["round_robin"],
-					},
-					{
-						Config: strings.Replace(config,
-							`algorithm = "ROUND_ROBIN"`,
-							`algorithm = "LOAD_BALANCE"`, 1),
-						Check: checks["load_balance"],
-					},
-					{
-						Config: strings.Replace(config,
-							`member_count = 1`,
-							`member_count = 3`, 1),
-						Check: checks["review_count"],
-					},
-					{
-						Config: strings.Replace(config,
-							`notify = true`,
-							`notify = false`, 1),
-						Check: checks["notify"],
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  checks["round_robin"],
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					Config: strings.Replace(config,
+						`algorithm = "ROUND_ROBIN"`,
+						`algorithm = "LOAD_BALANCE"`, 1),
+					Check: checks["load_balance"],
+				},
+				{
+					Config: strings.Replace(config,
+						`member_count = 1`,
+						`member_count = 3`, 1),
+					Check: checks["review_count"],
+				},
+				{
+					Config: strings.Replace(config,
+						`notify = true`,
+						`notify = false`, 1),
+					Check: checks["notify"],
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
-}
-
-func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
-
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
 	t.Run("cannot manage team code review settings if disabled", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name        = "tf-acc-test-team-repo-%s"
@@ -184,33 +139,17 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 			}
 		`, randomID)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: strings.Replace(config,
-							`algorithm = "ROUND_ROBIN"`,
-							`algorithm = "invalid"`, 1),
-						ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: strings.Replace(config,
+						`algorithm = "ROUND_ROBIN"`,
+						`algorithm = "invalid"`, 1),
+					ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-
 }

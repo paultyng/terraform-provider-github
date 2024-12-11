@@ -2,18 +2,17 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"log"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubReleaseResource(t *testing.T) {
-
 	t.Run("create a release with defaults", func(t *testing.T) {
-
 		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 
@@ -56,42 +55,26 @@ func TestAccGithubReleaseResource(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_release.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: importReleaseByResourcePaths(
-							"github_repository.test", "github_release.test"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					ResourceName:      "github_release.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importReleaseByResourcePaths(
+						"github_repository.test", "github_release.test"),
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("create a release on branch", func(t *testing.T) {
-
 		randomRepoPart := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		randomVersion := fmt.Sprintf("v1.0.%d", acctest.RandIntRange(0, 9999))
 		testBranchName := "test"
@@ -144,40 +127,24 @@ func TestAccGithubReleaseResource(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_release.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: importReleaseByResourcePaths(
-							"github_repository.test", "github_release.test"),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+				{
+					ResourceName:      "github_release.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+					ImportStateIdFunc: importReleaseByResourcePaths(
+						"github_repository.test", "github_release.test"),
+				},
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-
 }
 
 func importReleaseByResourcePaths(repoLogicalName, releaseLogicalName string) resource.ImportStateIdFunc {

@@ -9,17 +9,15 @@ import (
 )
 
 func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("get an repository oidc subject claim customization template without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				visibility = "private"
 			}
-	
+
 			resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
 				repository = github_repository.test.name
 				use_default = false
@@ -38,7 +36,7 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 				name = "tf-acc-test-%s"
 				visibility = "private"
 			}
-	
+
 			resource "github_actions_repository_oidc_subject_claim_customization_template" "test" {
 				repository = github_repository.test.name
 				use_default = true
@@ -64,41 +62,27 @@ func TestAccGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSour
 			resource.TestCheckResourceAttr("data.github_actions_repository_oidc_subject_claim_customization_template.test", "include_claim_keys.#", "0"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check1,
-					},
-					{
-						Config: config3,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config4,
-						Check:  check2,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  resource.ComposeTestCheckFunc(),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check1,
+				},
+				{
+					Config: config3,
+					Check:  resource.ComposeTestCheckFunc(),
+				},
+				{
+					Config: config4,
+					Check:  check2,
+				},
+			},
 		})
 	})
 }

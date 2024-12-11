@@ -9,18 +9,20 @@ import (
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubAppTokenDataSource(t *testing.T) {
-	expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
-
-	owner := "test-owner"
-
-	pemData, err := os.ReadFile(testGitHubAppPrivateKeyFile)
-	assert.Nil(t, err)
-
 	t.Run("creates a application token without error", func(t *testing.T) {
+		expectedAccessToken := "W+2e/zjiMTweDAr2b35toCF+h29l7NW92rJIPvFrCJQK"
+
+		owner := "test-owner"
+
+		pemData, err := os.ReadFile(testGitHubAppPrivateKeyFile)
+		if err != nil {
+			t.Logf("Unexpected error: %s", err)
+			t.Fail()
+		}
+
 		ts := githubApiMock([]*mockResponse{
 			{
 				ExpectedUri: fmt.Sprintf("/api/v3/app/installations/%s/access_tokens", testGitHubAppInstallationID),
@@ -59,8 +61,15 @@ func TestAccGithubAppTokenDataSource(t *testing.T) {
 			"token":           "",
 		})
 
-		err := dataSourceGithubAppTokenRead(schema, meta)
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAccessToken, schema.Get("token"))
+		err = dataSourceGithubAppTokenRead(schema, meta)
+		if err != nil {
+			t.Logf("Unexpected error: %s", err)
+			t.Fail()
+		}
+
+		if schema.Get("token") != expectedAccessToken {
+			t.Logf("Expected %s, got %s", expectedAccessToken, schema.Get("token"))
+			t.Fail()
+		}
 	})
 }

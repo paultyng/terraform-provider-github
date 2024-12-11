@@ -13,140 +13,134 @@ import (
 )
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-	teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
-	rn := "github_team_sync_group_mapping.test_mapping"
+	t.Run("creates a team sync group mapping", func(t *testing.T) {
+		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		rn := "github_team_sync_group_mapping.test_mapping"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "3"),
-					resource.TestCheckResourceAttrSet(rn, "group.3924494127.group_id"),
-					resource.TestCheckResourceAttrSet(rn, "group.3924494127.group_name"),
-					resource.TestCheckResourceAttrSet(rn, "group.4283356133.group_id"),
-					resource.TestCheckResourceAttrSet(rn, "group.4283356133.group_name"),
-					resource.TestCheckResourceAttrSet(rn, "group.451718421.group_id"),
-					resource.TestCheckResourceAttrSet(rn, "group.451718421.group_name"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "group.#", "3"),
+						resource.TestCheckResourceAttrSet(rn, "group.3924494127.group_id"),
+						resource.TestCheckResourceAttrSet(rn, "group.3924494127.group_name"),
+						resource.TestCheckResourceAttrSet(rn, "group.4283356133.group_id"),
+						resource.TestCheckResourceAttrSet(rn, "group.4283356133.group_name"),
+						resource.TestCheckResourceAttrSet(rn, "group.451718421.group_id"),
+						resource.TestCheckResourceAttrSet(rn, "group.451718421.group_name"),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
-}
 
-func TestAccGithubTeamSyncGroupMapping_disappears(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-	teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
-	rn := "github_team_sync_group_mapping.test_mapping"
+	t.Run("creates a team sync group mapping and then deletes it", func(t *testing.T) {
+		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		rn := "github_team_sync_group_mapping.test_mapping"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubTeamSyncGroupMappingDisappears(rn),
-				),
-				ExpectNonEmptyPlan: true,
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubTeamSyncGroupMappingDisappears(rn),
+					),
+					ExpectNonEmptyPlan: true,
+				},
 			},
-		},
+		})
 	})
-}
 
-func TestAccGithubTeamSyncGroupMapping_update(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-	teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
-	description := "tf-acc-group-description-update"
-	rn := "github_team_sync_group_mapping.test_mapping"
+	t.Run("creates a team sync group mapping and then updates it", func(t *testing.T) {
+		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		description := "tf-acc-group-description-update"
+		rn := "github_team_sync_group_mapping.test_mapping"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
+				},
+				{
+					Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "group.#", "0"),
+					),
+				},
+				{
+					Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "group.#", "3"),
+					),
+				},
+				{
+					Config: testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "group.#", "3"),
+						resource.TestCheckResourceAttr(rn, "group.1385744695.group_description", description),
+						resource.TestCheckResourceAttr(rn, "group.2749525965.group_description", description),
+						resource.TestCheckResourceAttr(rn, "group.3830341445.group_description", description),
+					),
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "0"),
-				),
-			},
-			{
-				Config: testAccGithubTeamSyncGroupMappingConfig(teamName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "3"),
-				),
-			},
-			{
-				Config: testAccGithubTeamSyncGroupMappingAddGroupAndUpdateConfig(teamName, description),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "3"),
-					resource.TestCheckResourceAttr(rn, "group.1385744695.group_description", description),
-					resource.TestCheckResourceAttr(rn, "group.2749525965.group_description", description),
-					resource.TestCheckResourceAttr(rn, "group.3830341445.group_description", description),
-				),
-			},
-		},
+		})
 	})
-}
 
-func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-	teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
-	rn := "github_team_sync_group_mapping.test_mapping"
+	t.Run("creates empty team sync group mapping", func(t *testing.T) {
+		teamName := acctest.RandomWithPrefix("tf-acc-test-%s")
+		rn := "github_team_sync_group_mapping.test_mapping"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamSyncGroupMappingDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "group.#", "0"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubTeamSyncGroupMappingDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubTeamSyncGroupMappingEmptyConfig(teamName),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "group.#", "0"),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateIdFunc: testAccGithubTeamSyncGroupMappingImportStateIdFunc(rn),
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccCheckGithubTeamSyncGroupMappingDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgName := testAccProvider.Meta().(*Owner).name
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
+	orgName := meta.name
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_sync_group_mapping" {
@@ -173,12 +167,16 @@ func testAccCheckGithubTeamSyncGroupMappingDisappears(resourceName string) resou
 		if !ok {
 			return fmt.Errorf("not found: %s", resourceName)
 		}
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+		orgName := meta.name
 		slug := rs.Primary.Attributes["team_slug"]
 
 		emptyGroupList := github.IDPGroupList{Groups: []*github.IDPGroup{}}
-		_, _, err := conn.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(context.TODO(), orgName, slug, emptyGroupList)
+		_, _, err = conn.Teams.CreateOrUpdateIDPGroupConnectionsBySlug(context.TODO(), orgName, slug, emptyGroupList)
 
 		return err
 	}

@@ -2,61 +2,60 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
-	rn := "github_repository_collaborator.test"
-	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
-
-	inviteeToken := os.Getenv("GITHUB_TEST_COLLABORATOR_TOKEN")
-	if inviteeToken == "" {
-		t.Skip("GITHUB_TEST_COLLABORATOR_TOKEN was not provided, skipping test")
+func TestAccGithubUserInvitationAccepter(t *testing.T) {
+	if len(testAccConf.testExternalUser) == 0 {
+		t.Skip("No external user provided")
 	}
 
-	var providers []*schema.Provider
+	if len(testAccConf.testExternalUserToken) == 0 {
+		t.Skip("No external user token provided")
+	}
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories(&providers),
-		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "permission", "push"),
-					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
-				),
+	t.Run("accepts an invitation", func(t *testing.T) {
+		rn := "github_repository_collaborator.test"
+		repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubUserInvitationAccepterConfig(testAccConf.testExternalUserToken, repoName, testAccConf.testExternalUser),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "permission", "push"),
+						resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+					),
+				},
 			},
-		},
+		})
 	})
-}
 
-func TestAccGithubUserInvitationAccepterAllowEmptyId(t *testing.T) {
-	rn := "github_user_invitation_accepter.test"
+	t.Run("accepts an invitation with an empty invitation_id", func(t *testing.T) {
+		rn := "github_user_invitation_accepter.test"
 
-	var providers []*schema.Provider
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories(&providers),
-		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubUserInvitationAccepterAllowEmptyId(),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "invitation_id", ""),
-					resource.TestCheckResourceAttr(rn, "allow_empty_id", "true"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubUserInvitationAccepterAllowEmptyId(),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(rn, "invitation_id", ""),
+						resource.TestCheckResourceAttr(rn, "allow_empty_id", "true"),
+					),
+				},
 			},
-		},
+		})
 	})
 }
 
@@ -64,7 +63,7 @@ func testAccCheckGithubUserInvitationAccepterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName string) string {
+func testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName, collaborator string) string {
 	return fmt.Sprintf(`
 provider "github" {
   alias = "main"
@@ -91,7 +90,7 @@ resource "github_user_invitation_accepter" "test" {
   provider      = "github.invitee"
   invitation_id = "${github_repository_collaborator.test.invitation_id}"
 }
-`, inviteeToken, repoName, testCollaborator)
+`, inviteeToken, repoName, collaborator)
 }
 
 func testAccGithubUserInvitationAccepterAllowEmptyId() string {

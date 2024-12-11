@@ -3,11 +3,13 @@ GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=github
 
+export TESTARGS=-race -coverprofile=coverage.txt -covermode=atomic
+
 default: build
 
 tools:
-	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
+	go install github.com/client9/misspell/cmd/misspell
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
 build: fmtcheck
 	go build ./...
@@ -27,8 +29,8 @@ test:
 	go test ./...
 	# commenting this out for release tooling, please run testacc instead
 
-testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+testacc:
+	TF_ACC=1 go test -run "^TestAcc*" ./github -v $(TESTARGS) -timeout 120m -count=1
 
 test-compile:
 	@if [ "$(TEST)" = "./..." ]; then \

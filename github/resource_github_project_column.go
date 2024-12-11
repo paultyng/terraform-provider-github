@@ -13,6 +13,8 @@ import (
 
 func resourceGithubProjectColumn() *schema.Resource {
 	return &schema.Resource{
+		DeprecationMessage: "This resource is deprecated as classic projects have been removed and this resource will no longer work. This resource will be removed in the next major version.",
+
 		Create: resourceGithubProjectColumnCreate,
 		Read:   resourceGithubProjectColumnRead,
 		Update: resourceGithubProjectColumnUpdate,

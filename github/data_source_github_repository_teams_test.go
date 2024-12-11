@@ -9,7 +9,6 @@ import (
 )
 
 func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
-
 	t.Run("queries teams of an existing repository", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -43,25 +42,19 @@ func TestAccGithubRepositoryTeamsDataSource(t *testing.T) {
 			resource.TestCheckResourceAttr("data.github_repository_teams.test", "teams.0.permission", "push"),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  resource.ComposeTestCheckFunc(),
-					},
-					{
-						Config: config2,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  resource.ComposeTestCheckFunc(),
 				},
-			})
-		}
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+				{
+					Config: config2,
+					Check:  check,
+				},
+			},
 		})
 	})
 }

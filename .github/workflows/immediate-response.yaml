@@ -1,7 +1,4 @@
-name: Issue/PR response
-permissions:
-  issues: write
-  pull-requests: write
+name: Issue/PR Response
 on:
   issues:
     types:
@@ -9,21 +6,27 @@ on:
   pull_request_target:
     types:
       - opened
+
+permissions: read-all
+
 jobs:
-  respond-to-issue:
+  respond:
+    name: Respond to Issue or PR
     if: ${{ github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]' && github.actor != 'githubactions[bot]' && github.actor != 'octokitbot' }}
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Determine issue or PR number
-        id: extract
-        run: echo "NUMBER=${{ github.event.issue.number || github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-
-      - name: Respond to issue or PR
-        uses: peter-evans/create-or-update-comment@v4
+      - name: Comment
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
-          issue-number: ${{ steps.extract.outputs.NUMBER }}
+          issue-number: ${{ github.event.issue.number || github.event.pull_request.number }}
           body: >
             👋 Hi! Thank you for this contribution! Just to let you know, our GitHub SDK team does a round of issue and PR reviews twice a week, every Monday and Friday!
-            We have a [process in place](https://github.com/octokit/.github/blob/main/community/prioritization_response.md#overview) for prioritizing and responding to your input. 
+            We have a [process in place](https://github.com/octokit/.github/blob/main/community/prioritization_response.md#overview) for prioritizing and responding to your input.
             Because you are a part of this community please feel free to comment, add to, or pick up any issues/PRs that are labeled with `Status: Up for grabs`.
             You & others like you are the reason all of this works! So thank you & happy coding! 🚀

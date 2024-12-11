@@ -59,6 +59,7 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 						"contexts": {
 							Type:       schema.TypeSet,
 							Optional:   true,
+							Computed:   true,
 							Deprecated: "GitHub is deprecating the use of `contexts`. Use a `checks` array instead.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -67,10 +68,12 @@ func resourceGithubBranchProtectionV3() *schema.Resource {
 						"checks": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							Computed:    true,
 							Description: "The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'app_id' like so 'context:app_id'",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
+							ConflictsWith: []string{"required_status_checks.0.contexts"},
 						},
 					},
 				},

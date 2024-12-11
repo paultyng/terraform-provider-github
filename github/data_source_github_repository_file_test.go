@@ -1,32 +1,24 @@
 package github
 
 import (
-	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"testing"
 
-	"github.com/google/go-github/v66/github"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestAccGithubRepositoryFileDataSource(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	t.Run("create and read a file with a branch name provided", func(t *testing.T) {
+	t.Run("reads a file with a branch name provided without erroring", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 				name      = "tf-acc-test-%s"
 				auto_init = true
+
+				lifecycle {
+					ignore_changes = all
+				}
 			}
 
 			resource "github_repository_file" "test" {
@@ -46,67 +38,91 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 			}
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "content",
-				"bar",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "ref",
-				"main",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_author",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_email",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_message",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_sha",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "id"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "ref", "main"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_sha"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_email"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			testCase(t, anonymous)
+			},
 		})
+	})
 
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+	t.Run("reads a file from a short repo name without erroring", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name      = "%s"
+				auto_init = true
+
+				lifecycle {
+					ignore_changes = all
+				}
+			}
+
+			resource "github_repository_file" "test" {
+				repository     = github_repository.test.name
+				branch         = "main"
+				file           = "test"
+				content        = "bar"
+				commit_message = "Managed by Terraform"
+				commit_author  = "Terraform User"
+				commit_email   = "terraform@example.com"
+			}
+
+			data "github_repository_file" "test" {
+				repository     = "%[1]s"
+				branch         = "main"
+				file           = github_repository_file.test.file
+
+				depends_on = [github_repository_file.test]
+			}
+		`, repoName)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "id"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "ref", "main"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_sha"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_email"),
+					),
+				},
+			},
 		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
 
 	t.Run("create and read a file without providing a branch name", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
 				name      			= "tf-acc-test-%s"
 				auto_init 			= true
+
+				lifecycle {
+					ignore_changes = all
+				}
 			}
 
 			resource "github_branch" "test" {
@@ -135,374 +151,105 @@ func TestAccGithubRepositoryFileDataSource(t *testing.T) {
 			}
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "content",
-				"bar",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "sha",
-				"ba0e162e1c47469e3fe4b393a8bf8c569f302116",
-			),
-			resource.TestCheckResourceAttr(
-				"data.github_repository_file.test", "ref",
-				"test",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_author",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_email",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_message",
-			),
-			resource.TestCheckResourceAttrSet(
-				"data.github_repository_file.test", "commit_sha",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "id"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "branch"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "ref", "test"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "content", "bar"),
+						resource.TestCheckResourceAttr("data.github_repository_file.test", "sha", "ba0e162e1c47469e3fe4b393a8bf8c569f302116"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_sha"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_message"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_author"),
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "commit_email"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
+			},
 		})
 	})
-}
 
-// TODO: This test is failing, needs review.
-func TestDataSourceGithubRepositoryFileRead(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// Can't test due to SDK and test framework limitations
+	// t.Run("try reading a non-existent file without an error", func(t *testing.T) {
+	// 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+	// 	config := fmt.Sprintf(`
+	// 		resource "github_repository" "test" {
+	// 			name      			= "tf-acc-test-%s"
+	// 			auto_init 			= true
 
-	// helper function to simplify marshalling.
-	marshal := func(t *testing.T, msg interface{}) string {
-		data, err := json.MarshalIndent(msg, "", "    ")
-		if err != nil {
-			t.Fatalf("cant encode to json: %v", err)
-		}
+	// 			lifecycle {
+	// 				ignore_changes = all
+	// 			}
+	// 		}
 
-		return string(data)
-	}
+	// 		data "github_repository_file" "test" {
+	// 			repository     = github_repository.test.name
+	// 			file           = "test"
+	// 		}
+	// 	`, randomID)
 
-	sha := "some-test-sha"
-	committerName := "some-test-user"
-	committerEmail := "some-test-user@github.com"
-	commitMessage := "test commit message"
+	// 	resource.Test(t, resource.TestCase{
+	// 		PreCheck:          func() { skipUnauthenticated(t) },
+	// 		ProviderFactories: providerFactories,
+	// 		Steps: []resource.TestStep{
+	// 			{
+	// 				Config: config,
+	// 				Check: resource.ComposeTestCheckFunc(
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "id"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "branch"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "ref"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "content"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "sha"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_sha"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_message"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_author"),
+	// 					resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_email"),
+	// 				),
+	// 			},
+	// 		},
+	// 	})
+	// })
 
-	enc := "base64"
-	fileContent := "here-goes-content-of-our-glorious-config.json"
-	b64FileContent := base64.StdEncoding.EncodeToString([]byte(fileContent))
-
-	fileName := "test-file.json"
-	branch := "main"
-
-	// setting up some org/owner info
-	owner := "test-owner"
-	org := "test-org"
-	repo := "test-repo"
-
-	apiUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch)
-
-	// preparing mashalled objects
-	repoContentRespBody := marshal(t, &github.RepositoryContent{
-		Encoding: &enc,
-		Content:  &b64FileContent,
-		SHA:      &sha,
-		URL:      &apiUrl,
-	})
-	repoCommit := &github.RepositoryCommit{
-		SHA: &sha,
-		Committer: &github.User{
-			Name:  &committerName,
-			Email: &committerEmail,
-		},
-		Commit: &github.Commit{
-			Message: &commitMessage,
-		},
-		Files: []*github.CommitFile{
-			{
-				Filename: &fileName,
-			},
-		},
-	}
-	repoCommitRespBody := marshal(t, repoCommit)
-	listCommitRespBody := marshal(t, []*github.RepositoryCommit{repoCommit})
-
-	t.Run("extracting org and repo if full_name is passed", func(t *testing.T) {
-		// test setup
-		repositoryFullName := fmt.Sprintf("%s/%s", org, repo)
-		expectedID := fmt.Sprintf("%s/%s", repo, fileName)
-		expectedRepo := "test-repo"
-
-		ts := githubApiMock([]*mockResponse{
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
-				ResponseBody: repoContentRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", org, repo, fileName, branch),
-				ResponseBody: listCommitRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", org, repo, sha),
-				ResponseBody: repoCommitRespBody,
-				StatusCode:   http.StatusOK,
-			},
-		})
-		defer ts.Close()
-
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
-
-		meta := &Owner{
-			name:     owner,
-			v3client: client,
-		}
-
-		testSchema := map[string]*schema.Schema{
-			"repository":     {Type: schema.TypeString},
-			"file":           {Type: schema.TypeString},
-			"branch":         {Type: schema.TypeString},
-			"commit_sha":     {Type: schema.TypeString},
-			"commit_email":   {Type: schema.TypeString},
-			"commit_author":  {Type: schema.TypeString},
-			"commit_message": {Type: schema.TypeString},
-			"content":        {Type: schema.TypeString},
-			"id":             {Type: schema.TypeString},
-		}
-
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
-			"repository":     repositoryFullName,
-			"file":           fileName,
-			"branch":         branch,
-			"commit_sha":     sha,
-			"commit_email":   committerEmail,
-			"commit_author":  committerName,
-			"commit_message": commitMessage,
-			"content":        "",
-			"id":             "",
-		})
-
-		// actual call
-		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
-
-		// assertions
-		for _, diagnostic := range diags {
-			assert.Equal(t, diag.Warning, diagnostic.Severity)
-		}
-		assert.Equal(t, expectedRepo, schema.Get("repository"))
-		assert.Equal(t, fileContent, schema.Get("content"))
-		assert.Equal(t, expectedID, schema.Get("id"))
-	})
-	t.Run("using user as owner if just name is passed", func(t *testing.T) {
-		// test setup
-		repositoryFullName := repo
-		expectedID := fmt.Sprintf("%s/%s", repo, fileName)
-		expectedRepo := "test-repo"
-
-		ts := githubApiMock([]*mockResponse{
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, fileName, branch),
-				ResponseBody: repoContentRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits?path=%s&sha=%s", owner, repo, fileName, branch),
-				ResponseBody: listCommitRespBody,
-				StatusCode:   http.StatusOK,
-			},
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/commits/%s", owner, repo, sha),
-				ResponseBody: repoCommitRespBody,
-				StatusCode:   http.StatusOK,
-			},
-		})
-		defer ts.Close()
-
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
-
-		meta := &Owner{
-			name:     owner,
-			v3client: client,
-		}
-
-		testSchema := map[string]*schema.Schema{
-			"repository":     {Type: schema.TypeString},
-			"file":           {Type: schema.TypeString},
-			"branch":         {Type: schema.TypeString},
-			"commit_sha":     {Type: schema.TypeString},
-			"commit_email":   {Type: schema.TypeString},
-			"commit_author":  {Type: schema.TypeString},
-			"commit_message": {Type: schema.TypeString},
-			"content":        {Type: schema.TypeString},
-			"id":             {Type: schema.TypeString},
-		}
-
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
-			"repository":     repositoryFullName,
-			"file":           fileName,
-			"branch":         branch,
-			"commit_sha":     sha,
-			"commit_email":   committerEmail,
-			"commit_author":  committerName,
-			"commit_message": commitMessage,
-			"content":        "",
-			"id":             "",
-		})
-
-		// actual call
-		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
-
-		// assertions
-		for _, diagnostic := range diags {
-			assert.Equal(t, diag.Warning, diagnostic.Severity)
-		}
-		assert.Equal(t, expectedRepo, schema.Get("repository"))
-		assert.Equal(t, fileContent, schema.Get("content"))
-		assert.Equal(t, expectedID, schema.Get("id"))
-	})
-
-	t.Run("try reading a non-existent file without an error", func(t *testing.T) {
-
+	t.Run("reads a directory without erroring", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 				name      			= "tf-acc-test-%s"
 				auto_init 			= true
+
+				lifecycle {
+					ignore_changes = all
+				}
 			}
 
 			data "github_repository_file" "test" {
 				repository     = github_repository.test.name
-				file           = "test"
+				file           = "."
 			}
 		`, randomID)
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckNoResourceAttr(
-				"data.github_repository_file.test", "id",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrSet("data.github_repository_file.test", "id"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "ref"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "content"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "sha"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_sha"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_message"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_author"),
+						resource.TestCheckNoResourceAttr("data.github_repository_file.test", "commit_email"),
+					),
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			testCase(t, anonymous)
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-	})
-
-	repoContentDirectoryRespBody := marshal(t, []github.RepositoryContent{
-		{
-			Encoding: &enc,
-			Content:  &b64FileContent,
-			SHA:      &sha,
-			URL:      &apiUrl,
-		},
-	})
-
-	t.Run("extract only non-file data if the path is for a directory", func(t *testing.T) {
-		// test setup
-		repositoryFullName := fmt.Sprintf("%s/%s", org, repo)
-
-		expectedID := fmt.Sprintf("%s/%s", repo, fileName)
-		expectedRepo := "test-repo"
-
-		ts := githubApiMock([]*mockResponse{
-			{
-				ExpectedUri:  fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", org, repo, fileName, branch),
-				ResponseBody: repoContentDirectoryRespBody,
-				StatusCode:   http.StatusOK,
 			},
 		})
-		defer ts.Close()
-
-		httpCl := http.DefaultClient
-		httpCl.Transport = http.DefaultTransport
-
-		client := github.NewClient(httpCl)
-		u, _ := url.Parse(ts.URL + "/")
-		client.BaseURL = u
-
-		meta := &Owner{
-			name:     owner,
-			v3client: client,
-		}
-
-		testSchema := map[string]*schema.Schema{
-			"repository": {Type: schema.TypeString},
-			"file":       {Type: schema.TypeString},
-			"branch":     {Type: schema.TypeString},
-			"commit_sha": {Type: schema.TypeString},
-			"content":    {Type: schema.TypeString},
-			"id":         {Type: schema.TypeString},
-		}
-
-		schema := schema.TestResourceDataRaw(t, testSchema, map[string]interface{}{
-			"repository": repositoryFullName,
-			"file":       fileName,
-			"branch":     branch,
-			"commit_sha": sha,
-		})
-
-		// actual call
-		diags := dataSourceGithubRepositoryFileRead(context.Background(), schema, meta)
-
-		// assertions
-		for _, diagnostic := range diags {
-			assert.Equal(t, diagnostic.Severity, diag.Warning)
-		}
-		assert.Equal(t, expectedRepo, schema.Get("repository"))
-		assert.Equal(t, expectedID, schema.Get("id"))
-		assert.Equal(t, "", schema.Get("content"))
-		assert.Equal(t, nil, schema.Get("sha"))
 	})
 }

@@ -2,11 +2,11 @@
 # and information on other useful linters
 
 run:
-  deadline: 3m
+  timeout: 3m
   modules-download-mode: vendor
 
 issues:
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
 
 linters:
@@ -14,7 +14,7 @@ linters:
   enable:
     - durationcheck
     - errcheck
-    - exportloopref
+    - copyloopvar
     # - forcetypeassert
     # - godot
     - gofmt
@@ -29,8 +29,8 @@ linters:
     - unconvert
     # - unparam
     - unused
-    - vet
-
+    - govet
 linters-settings:
   errcheck:
-    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:ForceNew|Set,fmt:.*,io:Close
+    exclude-functions:
+      - (*github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema.ResourceData).Set

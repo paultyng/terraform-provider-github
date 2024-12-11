@@ -10,35 +10,43 @@ import (
 )
 
 func TestAccOrganizationBlock_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("creates organization block", func(t *testing.T) {
+		config := `
+resource "github_organization_block" "test" {
+  username = "cgriggs01"
+}
+`
 
-	rn := "github_organization_block.test"
+		rn := "github_organization_block.test"
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationBlockDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccOrganizationBlockConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOrganizationBlockExists(rn),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccOrganizationBlockDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckOrganizationBlockExists(rn),
+					),
+				},
+				{
+					ResourceName:      rn,
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccOrganizationBlockDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgName := testAccProvider.Meta().(*Owner).name
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
+	orgName := meta.name
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_organization_block" {
@@ -64,8 +72,12 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		}
 
 		username := rs.Primary.ID
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgName := testAccProvider.Meta().(*Owner).name
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+		orgName := meta.name
 
 		blocked, _, err := conn.Organizations.IsBlocked(context.TODO(), orgName, username)
 		if err != nil {
@@ -77,9 +89,3 @@ func testAccCheckOrganizationBlockExists(n string) resource.TestCheckFunc {
 		return nil
 	}
 }
-
-const testAccOrganizationBlockConfig = `
-resource "github_organization_block" "test" {
-  username = "cgriggs01"
-}
-`

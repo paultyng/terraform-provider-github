@@ -6,20 +6,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubActionsOrganizationPublicKeyDataSource(t *testing.T) {
-	t.Run("queries an organization public key without error", func(t *testing.T) {
+func TestAccGithubAppDataSource(t *testing.T) {
+	t.Run("queries a global app", func(t *testing.T) {
 		config := `
-			data "github_actions_organization_public_key" "test" {}
+			data "github_app" "test" {
+				slug = "github-actions"
+			}
 		`
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
-				"data.github_actions_organization_public_key.test", "key",
+				"data.github_app.test", "name",
 			),
 		)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { skipUnlessHasOrgs(t) },
 			ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{

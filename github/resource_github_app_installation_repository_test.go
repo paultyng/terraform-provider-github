@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -10,17 +9,12 @@ import (
 )
 
 func TestAccGithubAppInstallationRepository(t *testing.T) {
-
-	const APP_INSTALLATION_ID = "APP_INSTALLATION_ID"
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-	installation_id, exists := os.LookupEnv(APP_INSTALLATION_ID)
+	if testAccConf.testOrgAppInstallationId == 0 {
+		t.Skip("No org app installation id provided")
+	}
 
 	t.Run("installs an app to a repository", func(t *testing.T) {
-
-		if !exists {
-			t.Skipf("%s environment variable is missing", APP_INSTALLATION_ID)
-		}
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -30,11 +24,11 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 
 			resource "github_app_installation_repository" "test" {
 				# The installation id of the app (in the organization).
-				installation_id    = "%s"
+				installation_id    = "%d"
 				repository         = github_repository.test.name
 			}
 
-		`, randomID, installation_id)
+		`, randomID, testAccConf.testOrgAppInstallationId)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -45,31 +39,15 @@ func TestAccGithubAppInstallationRepository(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessHasOrgs(t) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
+			},
 		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
 	})
-
 }

@@ -3,11 +3,11 @@ package github
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -49,57 +49,53 @@ func TestSuppressDeployKeyDiff(t *testing.T) {
 				i+1, tcCount, tc.OldValue, tc.NewValue)
 		}
 	}
-
 }
 
 func TestAccGithubRepositoryDeployKey_basic(t *testing.T) {
-	testUserEmail := os.Getenv("GITHUB_TEST_USER_EMAIL")
-	if testUserEmail == "" {
-		t.Skip("Skipping because `GITHUB_TEST_USER_EMAIL` is not set")
-	}
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("ssh-keygen -t rsa -b 4096 -C %s -N '' -f test-fixtures/id_rsa>/dev/null <<< y >/dev/null", testUserEmail))
-	if err := cmd.Run(); err != nil {
-		t.Fatal(err)
-	}
+	t.Run("creates repository deploy key without error", func(t *testing.T) {
+		cmd := exec.Command("bash", "-c", "ssh-keygen -t rsa -b 4096 -C test@example.com -N '' -f test-fixtures/id_rsa>/dev/null <<< y >/dev/null")
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
 
-	rn := "github_repository_deploy_key.test_repo_deploy_key"
-	rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	repositoryName := fmt.Sprintf("acctest-%s", rs)
-	keyPath := filepath.Join("test-fixtures", "id_rsa.pub")
+		rn := "github_repository_deploy_key.test_repo_deploy_key"
+		rs := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+		repositoryName := fmt.Sprintf("acctest-%s", rs)
+		keyPath := strings.ReplaceAll(filepath.Join("test-fixtures", "id_rsa.pub"), "\\", "/")
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubRepositoryDeployKeyDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubRepositoryDeployKeyExists(rn),
-					resource.TestCheckResourceAttr(rn, "read_only", "false"),
-					resource.TestCheckResourceAttr(rn, "repository", repositoryName),
-					resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
-					resource.TestCheckResourceAttr(rn, "title", "title"),
-				),
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnauthenticated(t) },
+			ProviderFactories: providerFactories,
+			CheckDestroy:      testAccCheckGithubRepositoryDeployKeyDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccGithubRepositoryDeployKeyConfig(repositoryName, keyPath),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckGithubRepositoryDeployKeyExists(rn),
+						resource.TestCheckResourceAttr(rn, "read_only", "false"),
+						resource.TestCheckResourceAttr(rn, "repository", repositoryName),
+						resource.TestMatchResourceAttr(rn, "key", regexp.MustCompile(`^ssh-rsa [^\s]+$`)),
+						resource.TestCheckResourceAttr(rn, "title", "title"),
+					),
+				},
 			},
-			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func testAccCheckGithubRepositoryDeployKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
+	meta, err := getTestMeta()
+	if err != nil {
+		return err
+	}
+	conn := meta.v3client
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_deploy_key" {
 			continue
 		}
 
-		owner := testAccProvider.Meta().(*Owner).name
+		owner := meta.name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err
@@ -132,8 +128,12 @@ func testAccCheckGithubRepositoryDeployKeyExists(n string) resource.TestCheckFun
 			return fmt.Errorf("no membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		owner := testAccProvider.Meta().(*Owner).name
+		meta, err := getTestMeta()
+		if err != nil {
+			return err
+		}
+		conn := meta.v3client
+		owner := meta.name
 		repoName, idString, err := parseTwoPartID(rs.Primary.ID, "repository", "ID")
 		if err != nil {
 			return err

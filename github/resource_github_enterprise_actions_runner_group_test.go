@@ -10,17 +10,8 @@ import (
 )
 
 func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
-	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-
-	if isEnterprise != "true" {
-		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
-	}
-
-	if testEnterprise == "" {
-		t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
-	}
-
 	t.Run("creates enterprise runner groups without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -32,7 +23,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				visibility					= "all"
 				allows_public_repositories	= true
 			}
-		`, testEnterprise, randomID)
+		`, testAccConf.enterpriseSlug, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -52,26 +43,20 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			},
 		})
 	})
 
 	t.Run("manages runner group visibility to selected orgs", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -87,7 +72,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				visibility					= "selected"
 				selected_organization_ids	= [data.github_organization.org.id]
 			}
-		`, testEnterprise, testOrganization, randomID)
+		`, testAccConf.enterpriseSlug, testAccConf.owner, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -110,25 +95,20 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			},
 		})
 	})
 
 	t.Run("imports an all runner group without error", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -139,7 +119,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				name       		= "tf-acc-test-%s"
 				visibility 		= "all"
 			}
-	`, testEnterprise, randomID)
+	`, testAccConf.enterpriseSlug, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_enterprise_actions_runner_group.test", "name"),
@@ -148,32 +128,26 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			resource.TestCheckResourceAttr("github_enterprise_actions_runner_group.test", "name", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:        "github_enterprise_actions_runner_group.test",
-						ImportState:         true,
-						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+				{
+					ResourceName:        "github_enterprise_actions_runner_group.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+				},
+			},
 		})
 	})
 
 	t.Run("imports a runner group with selected orgs without error", func(t *testing.T) {
-
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 		config := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
 				slug = "%s"
@@ -189,7 +163,7 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 				visibility					= "selected"
 				selected_organization_ids	= [data.github_organization.org.id]
 			}
-		`, testEnterprise, testOrganization, randomID)
+		`, testAccConf.enterpriseSlug, testAccConf.owner, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_enterprise_actions_runner_group.test", "name"),
@@ -202,27 +176,21 @@ func TestAccGithubActionsEnterpriseRunnerGroup(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:        "github_enterprise_actions_runner_group.test",
-						ImportState:         true,
-						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise),
-					},
+		resource.Test(t, resource.TestCase{
+			PreCheck:          func() { skipUnlessMode(t, enterprise) },
+			ProviderFactories: providerFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
 				},
-			})
-		}
-
-		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+				{
+					ResourceName:        "github_enterprise_actions_runner_group.test",
+					ImportState:         true,
+					ImportStateVerify:   true,
+					ImportStateIdPrefix: fmt.Sprintf(`%s/`, testAccConf.enterpriseSlug),
+				},
+			},
 		})
 	})
 }

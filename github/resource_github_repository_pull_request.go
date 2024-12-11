@@ -165,7 +165,6 @@ func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta inte
 		Body:                github.String(d.Get("body").(string)),
 		MaintainerCanModify: github.Bool(d.Get("maintainer_can_modify").(bool)),
 	})
-
 	if err != nil {
 		return err
 	}
@@ -296,7 +295,7 @@ func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta inte
 		errors = append(errors, fmt.Sprintf("could not read the Pull Request after the failed update: %v", err))
 	}
 
-	return fmt.Errorf(strings.Join(errors, ", "))
+	return fmt.Errorf("%s", strings.Join(errors, ", "))
 }
 
 func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta interface{}) error {
