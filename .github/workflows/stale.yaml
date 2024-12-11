@@ -1,14 +1,26 @@
-name: 'Close stale issues and PRs'
+name: Close Stale Issues & PRs
+
 on:
   workflow_dispatch:
   schedule:
     - cron: '30 1 * * *'
 
+permissions: read-all
+
 jobs:
   stale:
+    name: Stale
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # only for delete-branch option
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # v9.0.0
+      - name: Check for stale issues & PRs
+        uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # v9.0.0
         with:
           stale-issue-message: >
             👋 Hey Friends, this issue has been automatically marked as `stale` because it has no recent activity.

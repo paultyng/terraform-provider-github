@@ -1,4 +1,4 @@
-name: Add PRs and issues to Octokit org project
+name: Add PRs & Issues to Octokit Org Project
 
 on:
   issues:
@@ -6,13 +6,19 @@ on:
   pull_request_target:
     types: [reopened, opened]
 
+permissions: read-all
+
 jobs:
   add-to-project:
-    name: Add issue to project
+    name: Add to Project
     runs-on: ubuntu-latest
     continue-on-error: true
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/add-to-project@v1.0.2
+      - name: Add to project
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/octokit/projects/10
           github-token: ${{ secrets.OCTOKITBOT_PROJECT_ACTION_TOKEN }}

@@ -1,0 +1,76 @@
+name: Acceptance Tests (github.com)
+
+on:
+  workflow_dispatch:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+    branches:
+      - main
+
+permissions: read-all
+
+jobs:
+  test:
+    name: Test ${{ matrix.mode }}
+    if: github.event_name != 'pull_request_target' || contains(github.event.pull_request.labels.*.name, 'acctest')
+    # environment:
+    #   name: dotcom
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        mode: [anonymous, individual, organization] # team, enterprise
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set-up Go
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check credentials
+        if: matrix.mode != 'anonymous'
+        id: credentials
+        run: |
+          set -eou pipefail
+
+          token="${{ secrets.DOTCOM_TEST_USER_TOKEN }}"
+
+          if [[ -z "${token}" ]]; then
+            echo "Missing credentials" >&2
+            exit 1
+          fi
+
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run tests
+        env:
+          TF_ACC: "1"
+          TF_LOG: INFO
+          GITHUB_BASE_URL: https://api.github.com/
+          GITHUB_TEST_TYPE: ${{ matrix.mode }}
+          GITHUB_OWNER: ${{ (matrix.mode == 'individual' && 'github-terraform-test-user') || (matrix.mode == 'organization' && 'terraformtesting') || '' }}
+          GITHUB_USERNAME: github-terraform-test-user
+          GITHUB_TOKEN: ${{ matrix.mode != 'anonymous' && steps.credentials.outputs.token || '' }}
+          GITHUB_ENTERPRISE_SLUG: ""
+          GITHUB_TEST_USER_REPOSITORY: test-xk24f
+          GITHUB_TEST_ORG_USER: ""
+          GITHUB_TEST_ORG_REPOSITORY: test-repo
+          GITHUB_TEST_ORG_TEMPLATE_REPOSITORY: terraform-template-module
+          GITHUB_TEST_ORG_APP_INSTALLATION_ID: ""
+          GITHUB_TEST_EXTERNAL_USER: ""
+          GITHUB_TEST_EXTERNAL_USER_TOKEN: ""
+          GITHUB_TEST_EXTERNAL_USER2: ""
+          GITHUB_TEST_ADVANCED_SECURITY: "true"
+        run: go test -run "^TestAcc*" ./github -v -race -coverprofile=coverage.txt -covermode=atomic -sweep=tf-acc- -timeout 120m -count=1

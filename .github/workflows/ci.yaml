@@ -1,0 +1,32 @@
+name: GitHub Actions CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions: read-all
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GITHUB_TEST_ORGANIZATION: kfcampbell-terraform-provider
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set-up Go
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make tools
+      - run: make lint
+      - run: make website-lint
+      - run: make build
+      - run: make test
