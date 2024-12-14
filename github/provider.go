@@ -237,6 +237,7 @@ func Provider() *schema.Provider {
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
 			"github_ref":                                                            dataSourceGithubRef(),
 			"github_release":                                                        dataSourceGithubRelease(),
+			"github_release_asset":                                                  dataSourceGithubReleaseAsset(),
 			"github_repositories":                                                   dataSourceGithubRepositories(),
 			"github_repository":                                                     dataSourceGithubRepository(),
 			"github_repository_autolink_references":                                 dataSourceGithubRepositoryAutolinkReferences(),
