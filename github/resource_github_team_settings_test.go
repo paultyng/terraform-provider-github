@@ -84,6 +84,7 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 					algorithm = "ROUND_ROBIN"
 					member_count = 1
 					notify = true
+					remove_team_request = true
 				}
 			}
 		`, randomID)
@@ -111,6 +112,12 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 				resource.TestCheckResourceAttr(
 					"github_team_settings.test", "review_request_delegation.0.notify",
 					"false",
+				),
+			),
+			"remove_team_request": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_team_settings.test", "review_request_delegation.0.remove_team_request",
+					"true",
 				),
 			),
 		}
@@ -141,6 +148,12 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 							`notify = true`,
 							`notify = false`, 1),
 						Check: checks["notify"],
+					},
+					{
+						Config: strings.Replace(config,
+							`remove_team_request = false`,
+							`remove_team_request = true`, 1),
+						Check: checks["remove_team_request"],
 					},
 				},
 			})
@@ -180,6 +193,7 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 					algorithm = "ROUND_ROBIN"
 					member_count = 1
 					notify = true
+					remove_team_request = true
 				}
 			}
 		`, randomID)
