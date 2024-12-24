@@ -186,7 +186,10 @@ func (injector *previewHeaderInjectorTransport) RoundTrip(req *http.Request) (*h
 		header := req.Header.Get(name)
 		if header == "" {
 			header = value
-		} else {
+			// NOTE: Some API endpoints expect a single Accept: application/octet-stream header.
+			// If one has been set, it's necessary to preserve it as-is, without
+			// appending previewHeaders value.
+		} else if !(strings.ToLower(name) == "accept" && header == "application/octet-stream") {
 			header = strings.Join([]string{header, value}, ",")
 		}
 		req.Header.Set(name, header)
