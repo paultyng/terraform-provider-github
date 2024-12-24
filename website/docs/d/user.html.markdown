@@ -17,6 +17,11 @@ data "github_user" "example" {
   username = "example"
 }
 
+# Retrieve information about a GitHub user by ID.
+data "github_user" "example" {
+  id = 1
+}
+
 # Retrieve information about the currently authenticated user.
 data "github_user" "current" {
   username = ""
@@ -30,11 +35,13 @@ output "current_github_login" {
 
 ## Argument Reference
 
- * `username` - (Required) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
+ * `username` - (Optional) The username. Use an empty string `""` to retrieve information about the currently authenticated user.
+ * `id` - (Optional) The id.
+
+ -> Exactly one of `username` or `id` must be specified.
 
 ## Attributes Reference
 
- * `id` - the ID of the user.
  * `node_id` - the Node ID of the user.
  * `login` - the user's login.
  * `avatar_url` - the user's avatar URL.

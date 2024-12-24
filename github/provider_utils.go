@@ -130,6 +130,14 @@ func testOwnerFunc() string {
 	return owner
 }
 
+func testOwnerIdFunc() string {
+	owner_id := os.Getenv("GITHUB_OWNER_ID")
+	if owner_id == "" {
+		owner_id = os.Getenv("GITHUB_TEST_OWNER_ID")
+	}
+	return owner_id
+}
+
 const anonymous = "anonymous"
 const individual = "individual"
 const organization = "organization"

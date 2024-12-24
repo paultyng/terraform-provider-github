@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/google/go-github/v65/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,8 +14,9 @@ func dataSourceGithubUser() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{"id", "username"},
 			},
 			"login": {
 				Type:     schema.TypeString,
@@ -98,19 +100,36 @@ func dataSourceGithubUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"id": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ExactlyOneOf: []string{"id", "username"},
+			},
 		},
 	}
 }
 
 func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
-	username := d.Get("username").(string)
-
 	client := meta.(*Owner).v3client
 	ctx := context.Background()
 
-	user, _, err := client.Users.Get(ctx, username)
-	if err != nil {
-		return err
+	var user *github.User
+	var err error
+
+	if d.Get("username") != "" {
+		username := d.Get("username").(string)
+
+		user, _, err = client.Users.Get(ctx, username)
+		if err != nil {
+			return err
+		}
+	} else if d.Get("id") != 0 {
+		id := int64(d.Get("id").(int))
+
+		user, _, err = client.Users.GetByID(ctx, id)
+		if err != nil {
+			return err
+		}
 	}
 
 	gpg, _, err := client.Users.ListGPGKeys(ctx, user.GetLogin(), nil)
@@ -133,6 +152,7 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.FormatInt(user.GetID(), 10))
+	d.Set("username", user.GetLogin())
 	if err = d.Set("login", user.GetLogin()); err != nil {
 		return err
 	}
