@@ -197,6 +197,7 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"github_actions_environment_public_key":                                 dataSourceGithubActionsEnvironmentPublicKey(),
 			"github_actions_environment_secrets":                                    dataSourceGithubActionsEnvironmentSecrets(),
 			"github_actions_environment_variables":                                  dataSourceGithubActionsEnvironmentVariables(),
 			"github_actions_organization_oidc_subject_claim_customization_template": dataSourceGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(),
