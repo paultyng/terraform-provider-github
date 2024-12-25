@@ -159,15 +159,6 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
-	if err = d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
-		return err
-	}
-	if err = d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
-		return err
-	}
-	if err = d.Set("created_at", secret.CreatedAt.String()); err != nil {
-		return err
-	}
 	if err = d.Set("visibility", secret.Visibility); err != nil {
 		return err
 	}
@@ -199,31 +190,7 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 		return err
 	}
 
-	// This is a drift detection mechanism based on timestamps.
-	//
-	// If we do not currently store the "updated_at" field, it means we've only
-	// just created the resource and the value is most likely what we want it to
-	// be.
-	//
-	// If the resource is changed externally in the meantime then reading back
-	// the last update timestamp will return a result different than the
-	// timestamp we've persisted in the state. In that case, we can no longer
-	// trust that the value (which we don't see) is equal to what we've declared
-	// previously.
-	//
-	// The only solution to enforce consistency between is to mark the resource
-	// as deleted (unset the ID) in order to fix potential drift by recreating
-	// the resource.
-	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
-		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
-		d.SetId("")
-	} else if !ok {
-		if err = d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return readMaybeDriftedSecret(d, secret)
 }
 
 func resourceGithubActionsOrganizationSecretDelete(d *schema.ResourceData, meta interface{}) error {

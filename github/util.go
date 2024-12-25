@@ -263,6 +263,36 @@ func validateSecretNameFunc(v interface{}, path cty.Path) diag.Diagnostics {
 	return wrapErrors(errs)
 }
 
+// This function is used to read the properties of a secret that may have drifted.
+//
+// It uses "updated_at" to determine if the secret has been updated externally. If yes,
+// it will mark the encrypted values as unset, to force an update.
+//
+// This is necessary because "encrypted_value" and "plaintext_value" are
+// not available to us from the API, as they are write-only on GitHub.
+func readMaybeDriftedSecret(d *schema.ResourceData, secret *github.Secret) error {
+	if err := d.Set("encrypted_value", d.Get("encrypted_value")); err != nil {
+		return err
+	}
+	if err := d.Set("plaintext_value", d.Get("plaintext_value")); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", secret.CreatedAt.String()); err != nil {
+		return err
+	}
+
+	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
+		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
+		d.Set("encrypted_value", "")
+		d.Set("plaintext_value", "")
+	} else if !ok {
+		if err := d.Set("updated_at", secret.UpdatedAt.String()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // deleteResourceOn404AndSwallow304OtherwiseReturnError will log and delete resource if error is 404 which indicates resource (or any of its ancestors)
 // doesn't exist.
 // resourceDescription represents a formatting string that represents the resource
