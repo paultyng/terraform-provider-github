@@ -78,6 +78,11 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 				Computed:    true,
 				Description: "Date of 'actions_secret' update.",
 			},
+			"destroy_on_drift": {
+				Type:     schema.TypeBool,
+				Default:  true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -214,7 +219,8 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	// The only solution to enforce consistency between is to mark the resource
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
-	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
+	destroyOnDrift := d.Get("destroy_on_drift").(bool)
+	if updatedAt, ok := d.GetOk("updated_at"); ok && destroyOnDrift && updatedAt != secret.UpdatedAt.String() {
 		log.Printf("[INFO] The secret %s has been externally updated in GitHub", d.Id())
 		d.SetId("")
 	} else if !ok {

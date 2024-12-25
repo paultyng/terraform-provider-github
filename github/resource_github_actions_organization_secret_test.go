@@ -25,6 +25,7 @@ func TestAccGithubActionsOrganizationSecret(t *testing.T) {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
 			  visibility       = "private"
+			  destroy_on_drift = false
 			}
 		`, secretValue, secretValue)
 
