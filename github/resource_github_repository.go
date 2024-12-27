@@ -280,6 +280,11 @@ func resourceGithubRepository() *schema.Resource {
 							Description:      "The type the page should be sourced.",
 							ValidateDiagFunc: validateValueFunc([]string{"legacy", "workflow"}),
 						},
+						"https_enforced": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Whether the rendered GitHub Pages site will only be served over HTTPS",
+						},
 						"cname": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -935,6 +940,14 @@ func expandPagesUpdate(input []interface{}) *github.PagesUpdate {
 		update.BuildType = github.String(v)
 	}
 
+  // Only set the github.PagesUpdate HTTPS_Enforced field if the value of of
+  // CNAME is a non-empty string and if the value of https_enforced is a valid boolean.
+  if v, ok := pages["cname"].(string); ok && v != "" && pages["https_enforced"] != nil {
+    if v, ok := pages["https_enforced"].(bool); ok {
+      update.HTTPS_Enforced = github.Bool(v)
+    }
+  }
+
 	// To update the GitHub Pages source, the github.PagesUpdate Source field
 	// must include the branch name and optionally the subdirectory /docs.
 	// e.g. "master" or "master /docs"
@@ -964,6 +977,7 @@ func flattenPages(pages *github.Pages) []interface{} {
 	pagesMap := make(map[string]interface{})
 	pagesMap["source"] = []interface{}{sourceMap}
 	pagesMap["build_type"] = pages.GetBuildType()
+	pagesMap["https_enforced"] = pages.GetHTTPSEnforced()
 	pagesMap["url"] = pages.GetURL()
 	pagesMap["status"] = pages.GetStatus()
 	pagesMap["cname"] = pages.GetCNAME()

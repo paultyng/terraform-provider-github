@@ -262,6 +262,10 @@ func dataSourceGithubRepository() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"https_enforced": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
 						"custom_404": {
 							Type:     schema.TypeBool,
 							Computed: true,

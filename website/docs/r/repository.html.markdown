@@ -134,6 +134,8 @@ The `pages` block supports the following:
 
 * `build_type` - (Optional) The type of GitHub Pages site to build. Can be `legacy` or `workflow`. If you use `legacy` as build type you need to set the option `source`.
 
+* `https_enforced` - (Optional) Whether the GitHub Pages site will only be served over HTTPS. This can only be set after the repository has been created.
+
 * `cname` - (Optional) The custom domain for the repository. This can only be set after the repository has been created.
 
 #### GitHub Pages Source ####
