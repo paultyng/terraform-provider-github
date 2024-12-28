@@ -985,6 +985,77 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
+	t.Run("skips ruleset operations for archived repositories", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name        = "tf-acc-test-archive-ruleset-%[1]s"
+				description = "Terraform acceptance tests %[1]s"
+				archived    = false
+			}
+
+			resource "github_repository_ruleset" "test" {
+				name        = "test"
+				repository  = github_repository.test.name
+				target      = "branch"
+				enforcement = "active"
+
+				rules {
+					creation = true
+				}
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "archived",
+					"false",
+				),
+				resource.TestCheckResourceAttr(
+					"github_repository_ruleset.test", "name",
+					"test",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "archived",
+					"true",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: strings.Replace(config,
+							`archived    = false`,
+							`archived    = true`, 1),
+						Check: checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
 func TestAccGithubRepositoryPages(t *testing.T) {
 
