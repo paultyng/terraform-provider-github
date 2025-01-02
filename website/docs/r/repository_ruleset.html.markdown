@@ -49,7 +49,7 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
-    
+
   }
 }
 ```
@@ -104,7 +104,7 @@ The `rules` block supports the following:
 * `required_code_scanning` - (Optional) (Block List, Max: 1) Define which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. Multiple code scanning tools can be specified. (see [below for nested schema](#rules.required_code_scanning))
 
 * `update` - (Optional) (Boolean) Only allow users with bypass permission to update matching refs.
-  
+
 * `update_allows_fetch_and_merge` - (Optional) (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`. Note: behaviour is affected by a known bug on the GitHub side which may cause issues when using this parameter.
 
 #### rules.branch_name_pattern ####
@@ -179,7 +179,7 @@ The `rules` block supports the following:
 
 * `context` - (Required) (String) The status check context name that must be present on the commit.
 
-* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from.
+* `integration_id` - (Optional) (Number) The optional integration ID that this status check must originate from. It's a GitHub App ID, which can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app).
 
 #### rules.tag_name_pattern ####
 
@@ -205,7 +205,7 @@ The `rules` block supports the following:
 
 #### bypass_actors ####
 
-* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset.
+* `actor_id` - (Required) (Number) The ID of the actor that can bypass a ruleset. If `actor_type` is `Integration`, `actor_id` is a GitHub App ID. App ID can be obtained by following instructions from the [Get an App API docs](https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-app)
 
 * `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.
 

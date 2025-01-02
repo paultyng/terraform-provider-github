@@ -13,7 +13,7 @@ This resource allows you to create and manage rulesets on the organization level
 
 ## Example Usage
 
-```
+```hcl
 resource "github_organization_ruleset" "example" {
   name        = "example"
   target      = "branch"

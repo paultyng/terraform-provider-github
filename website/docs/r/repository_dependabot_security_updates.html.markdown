@@ -25,7 +25,7 @@ resource "github_repository" "repo" {
 
 
 resource "github_repository_dependabot_security_updates" "example" {
-  repository  = github_repository.test.id
+  repository  = github_repository.test.name
   enabled     = true
 }
 ```
@@ -34,7 +34,7 @@ resource "github_repository_dependabot_security_updates" "example" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The repository to manage.
+* `repository` - (Required) The name of the GitHub repository.
 
 * `enabled` - (Required) The state of the automated security fixes.
 
