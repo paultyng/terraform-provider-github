@@ -124,6 +124,10 @@ initial repository creation and create the target branch inside of the repositor
 
 * `ignore_vulnerability_alerts_during_read` (Optional) - Set to `true` to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.
 
+* `automated_security_fixes` (Optional) - Set to `true` to enable automated security fixes. The authenticated user must have admin access to the repository. For more information, see [Configuring automated security fixes](https://docs.github.com/articles/configuring-automated-security-fixes).
+
+* `ignore_automated_security_fixes_during_read` (Optional) - Set to `true` to not call the automated security fixes endpoint so the resource can also be used without admin permissions during read.
+
 * `allow_update_branch` (Optional) - Set to `true` to always suggest updating pull request branches.
 
 ### GitHub Pages Configuration

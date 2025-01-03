@@ -327,6 +327,16 @@ func resourceGithubRepository() *schema.Resource {
 				Optional:    true,
 				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
 			},
+			"automated_security_fixes": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to true to enable automated security fixes for a repository. The authenticated user must have admin access to the repository",
+			},
+			"ignore_automated_security_fixes_during_read": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to true to not call the automated security fixes endpoint so the resource can also be used without admin permissions during read.",
+			},
 			"full_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -730,6 +740,18 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	if !d.Get("ignore_automated_security_fixes_during_read").(bool) {
+		automatedSecurityFixes, _, err := client.Repositories.GetAutomatedSecurityFixes(ctx, owner, repoName)
+
+		if err != nil {
+			return fmt.Errorf("error reading repository automated security fixes: %v", err)
+		}
+
+		if err = d.Set("automated_security_fixes", automatedSecurityFixes.GetEnabled()); err != nil {
+			return err
+		}
+	}
+
 	if err = d.Set("security_and_analysis", flattenSecurityAndAnalysis(repo.GetSecurityAndAnalysis())); err != nil {
 		return err
 	}
@@ -823,6 +845,17 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		_, err = updateVulnerabilityAlerts(ctx, owner, repoName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("automated_security_fixes") {
+		updateAutomatedSecurityFixes := client.Repositories.DisableAutomatedSecurityFixes
+		if automatedSecurityFixes, ok := d.GetOk("automated_security_fixes"); ok && automatedSecurityFixes.(bool) {
+			updateAutomatedSecurityFixes = client.Repositories.EnableAutomatedSecurityFixes
+		}
+		_, err = updateAutomatedSecurityFixes(ctx, owner, repoName)
 		if err != nil {
 			return err
 		}
