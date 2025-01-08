@@ -1515,6 +1515,56 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
+	t.Run("sets internal visibility for repositories created by a template", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "internal" {
+				name       = "tf-acc-test-visibility-internal-%s"
+				visibility = "internal"
+				template {
+					owner      = "%s"
+					repository = "%s"
+				}
+			}
+		`, randomID, testOrganization, "terraform-template-module")
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.internal", "visibility",
+				"internal",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository.internal", "internal",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("sets private visibility for repositories created by a template", func(t *testing.T) {
 
 		config := fmt.Sprintf(`

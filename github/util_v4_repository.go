@@ -8,7 +8,7 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
-func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
+func getRepositoryIDForOwner(name string, owner string, meta interface{}) (githubv4.ID, error) {
 
 	// Interpret `name` as a node ID
 	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
@@ -29,7 +29,7 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 		} `graphql:"repository(owner:$owner, name:$name)"`
 	}
 	variables := map[string]interface{}{
-		"owner": githubv4.String(meta.(*Owner).name),
+		"owner": githubv4.String(owner),
 		"name":  githubv4.String(name),
 	}
 	ctx := context.Background()
@@ -44,6 +44,10 @@ func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
 	}
 
 	return query.Repository.ID, nil
+}
+
+func getRepositoryID(name string, meta interface{}) (githubv4.ID, error) {
+	return getRepositoryIDForOwner(name, meta.(*Owner).name, meta)
 }
 
 func repositoryNodeIDExists(name string, meta interface{}) (bool, error) {

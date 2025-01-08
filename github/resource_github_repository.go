@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/shurcooL/githubv4"
 )
 
 func resourceGithubRepository() *schema.Resource {
@@ -526,6 +527,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
+	graphql := meta.(*Owner).v4client
 
 	if branchName, hasDefaultBranch := d.GetOk("default_branch"); hasDefaultBranch && (branchName != "main") {
 		return fmt.Errorf("cannot set the default branch on a new repository to something other than 'main'")
@@ -539,11 +541,15 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	// determine if repository should be private. assume public to start
 	isPrivate := false
+	effectiveVisibility := githubv4.RepositoryVisibilityPublic
 
 	// prefer visibility to private flag since private flag is deprecated
 	privateKeyword, ok := d.Get("private").(bool)
 	if ok {
 		isPrivate = privateKeyword
+		if privateKeyword {
+			effectiveVisibility = githubv4.RepositoryVisibilityPrivate
+		}
 	}
 
 	visibility, ok := d.Get("visibility").(string)
@@ -551,6 +557,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 		if visibility == "private" || visibility == "internal" {
 			isPrivate = true
 		}
+		effectiveVisibility = githubv4.RepositoryVisibility(strings.ToUpper(visibility))
 	}
 
 	repoReq.Private = github.Bool(isPrivate)
@@ -566,26 +573,40 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 			templateRepo := templateConfigMap["repository"].(string)
 			templateRepoOwner := templateConfigMap["owner"].(string)
-			includeAllBranches := templateConfigMap["include_all_branches"].(bool)
 
-			templateRepoReq := github.TemplateRepoRequest{
-				Name:               &repoName,
-				Owner:              &owner,
-				Description:        github.String(d.Get("description").(string)),
-				Private:            github.Bool(isPrivate),
-				IncludeAllBranches: github.Bool(includeAllBranches),
-			}
-
-			repo, _, err := client.Repositories.CreateFromTemplate(ctx,
-				templateRepoOwner,
-				templateRepo,
-				&templateRepoReq,
-			)
+			templateID, err := getRepositoryIDForOwner(templateRepo, templateRepoOwner, meta)
 			if err != nil {
 				return err
 			}
 
-			d.SetId(*repo.Name)
+			owner, _, err := client.Organizations.Get(ctx, meta.(*Owner).name)
+			if err != nil {
+				return err
+			}
+
+			var mutation struct {
+				CloneTemplateRepository struct {
+					Repository struct {
+						Name string
+					}
+				} `graphql:"cloneTemplateRepository(input: $input)"`
+			}
+
+			includeAllBranches := githubv4.Boolean(templateConfigMap["include_all_branches"].(bool))
+			description := githubv4.String(d.Get("description").(string))
+			err = graphql.Mutate(ctx, &mutation, githubv4.CloneTemplateRepositoryInput{
+				Name:               githubv4.String(d.Get("name").(string)),
+				OwnerID:            githubv4.ID(owner.NodeID),
+				Description:        &description,
+				RepositoryID:       templateID,
+				Visibility:         effectiveVisibility,
+				IncludeAllBranches: &includeAllBranches,
+			}, nil)
+			if err != nil {
+				return err
+			}
+
+			d.SetId(mutation.CloneTemplateRepository.Repository.Name)
 		}
 	} else {
 		// Create without a repository template
