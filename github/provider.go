@@ -122,6 +122,12 @@ func Provider() *schema.Provider {
 					},
 				},
 			},
+			"gh_user": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"GITHUB_USER", "GIT_USER", "GIT_USERNAME"}, nil),
+				Description: descriptions["gh_user"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -303,6 +309,7 @@ func init() {
 			"Defaults to [500, 502, 503, 504]",
 		"max_retries": "Number of times to retry a request after receiving an error status code" +
 			"Defaults to 3",
+		"gh_user": "the username to retrieve token from GitHub CLI. Defaults to GITHUB_USER, GIT_USER, GIT_USERNAME environemnt variables or none.",
 	}
 }
 
@@ -379,7 +386,8 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 		}
 
 		if token == "" {
-			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom)
+			ghUser := d.Get("gh_user").(string)
+			ghAuthToken, err := tokenFromGhCli(baseURL, isGithubDotCom, ghUser)
 			if err != nil {
 				return nil, diag.FromErr(fmt.Errorf("gh auth token: %w", err))
 			}
@@ -453,7 +461,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 }
 
 // See https://github.com/integrations/terraform-provider-github/issues/1822
-func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
+func tokenFromGhCli(baseURL string, isGithubDotCom bool, ghUser string) (string, error) {
 	ghCliPath := os.Getenv("GH_PATH")
 	if ghCliPath == "" {
 		ghCliPath = "gh"
@@ -480,7 +488,15 @@ func tokenFromGhCli(baseURL string, isGithubDotCom bool) (string, error) {
 	// $ gh auth token --hostname github.com
 	// > gh..<valid token>
 	hostname = strings.TrimPrefix(hostname, "api.")
-	out, err := exec.Command(ghCliPath, "auth", "token", "--hostname", hostname).Output()
+	args := []string{"auth", "token", "--hostname", hostname}
+	if ghUser != "" {
+		// If the user is set, pass it to the `gh` CLI to retrieve the token. This is
+		// useful when the user has multiple accounts on the development machine and
+		// wants to use a specific one. This is especially useful for GitHub Enterprise
+		// Managed User (EMU) accounts.
+		args = append(args, "--user", ghUser)
+	}
+	out, err := exec.Command(ghCliPath, args...).Output()
 	if err != nil {
 		// GH CLI is either not installed or there was no `gh auth login` command issued,
 		// which is fine. don't return the error to keep the flow going
