@@ -139,6 +139,10 @@ func dataSourceGithubOrganization() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"secret_scanning_push_protection_custom_link": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"summary_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -264,6 +268,7 @@ func dataSourceGithubOrganizationRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("dependency_graph_enabled_for_new_repositories", organization.GetDependencyGraphEnabledForNewRepos())
 		d.Set("secret_scanning_enabled_for_new_repositories", organization.GetSecretScanningEnabledForNewRepos())
 		d.Set("secret_scanning_push_protection_enabled_for_new_repositories", organization.GetSecretScanningPushProtectionEnabledForNewRepos())
+		d.Set("secret_scanning_push_protection_custom_link", organization.GetSecretScanningPushProtectionCustomLink())
 	}
 
 	d.SetId(strconv.FormatInt(organization.GetID(), 10))

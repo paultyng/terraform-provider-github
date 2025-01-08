@@ -168,6 +168,11 @@ func resourceGithubOrganizationSettings() *schema.Resource {
 				Default:     false,
 				Description: "Whether or not secret scanning push protection is enabled for new repositories.",
 			},
+			"secret_scanning_push_protection_custom_link": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The URL that will be displayed to contributors who are blocked from pushing a secret.",
+			},
 		},
 	}
 }
@@ -207,6 +212,7 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
 		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
 		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
+		SecretScanningPushProtectionCustomLink: 	github.String(d.Get("secret_scanning_push_protection_custom_link").(string)),
 	}
 
 	enterpriseSettings := github.Organization{
@@ -236,6 +242,7 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
 		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
 		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
+		SecretScanningPushProtectionCustomLink: 	github.String(d.Get("secret_scanning_push_protection_custom_link").(string)),
 	}
 
 	enterpriseSettingsNoFork := github.Organization{
@@ -264,6 +271,7 @@ func resourceGithubOrganizationSettingsCreateOrUpdate(d *schema.ResourceData, me
 		DependencyGraphEnabledForNewRepos:              github.Bool(d.Get("dependency_graph_enabled_for_new_repositories").(bool)),
 		SecretScanningEnabledForNewRepos:               github.Bool(d.Get("secret_scanning_enabled_for_new_repositories").(bool)),
 		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(d.Get("secret_scanning_push_protection_enabled_for_new_repositories").(bool)),
+		SecretScanningPushProtectionCustomLink: 	github.String(d.Get("secret_scanning_push_protection_custom_link").(string)),
 	}
 
 	orgPlan, _, err := client.Organizations.Edit(ctx, org, nil)
@@ -389,6 +397,9 @@ func resourceGithubOrganizationSettingsRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 	if err = d.Set("secret_scanning_push_protection_enabled_for_new_repositories", orgSettings.GetSecretScanningPushProtectionEnabledForNewRepos()); err != nil {
+		return err
+	}
+	if err = d.Set("secret_scanning_push_protection_custom_link", orgSettings.GetSecretScanningPushProtectionCustomLink()); err != nil {
 		return err
 	}
 	return nil
