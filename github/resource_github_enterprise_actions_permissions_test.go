@@ -285,4 +285,45 @@ func TestAccGithubActionsEnterprisePermissions(t *testing.T) {
 		})
 	})
 
+	t.Run("test disabling of actions at organization level", func(t *testing.T) {
+
+		enabledOrganizations := "none"
+
+		config := fmt.Sprintf(`
+			resource "github_enterprise_actions_permissions" "test" {
+				enterprise_slug = "%s"
+				enabled_organizations = "%s"
+			}
+		`, testEnterprise, enabledOrganizations)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_enterprise_actions_permissions.test", "enabled_organizations", enabledOrganizations,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			if isEnterprise != "true" {
+				t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
+			}
+			if testEnterprise == "" {
+				t.Skip("Skipping because `ENTERPRISE_SLUG` is not set")
+			}
+			testCase(t, enterprise)
+		})
+	})
+
 }

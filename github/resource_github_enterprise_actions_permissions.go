@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -149,14 +150,28 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledOrganizations := d.Get("enabled_organizations").(string)
 
-	_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
-		enterpriseId,
-		github.ActionsPermissionsEnterprise{
-			AllowedActions:       &allowedActions,
-			EnabledOrganizations: &enabledOrganizations,
-		})
-	if err != nil {
-		return err
+	if allowedActions == "" {
+		log.Printf("[DEBUG] The allowed_actions is not set")
+		_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
+			enterpriseId,
+			github.ActionsPermissionsEnterprise{
+				EnabledOrganizations: &enabledOrganizations,
+			})
+		if err != nil {
+			return err
+		}
+	}
+
+	if allowedActions == "all" {
+		_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
+			enterpriseId,
+			github.ActionsPermissionsEnterprise{
+				AllowedActions:       &allowedActions,
+				EnabledOrganizations: &enabledOrganizations,
+			})
+		if err != nil {
+			return err
+		}
 	}
 
 	if allowedActions == "selected" {

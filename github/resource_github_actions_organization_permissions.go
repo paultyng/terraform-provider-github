@@ -147,14 +147,25 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
-		orgName,
-		github.ActionsPermissions{
-			AllowedActions:      &allowedActions,
-			EnabledRepositories: &enabledRepositories,
-		})
-	if err != nil {
-		return err
+	if allowedActions != "" {
+		_, _, err = client.Actions.EditActionsPermissions(ctx,
+			orgName,
+			github.ActionsPermissions{
+				AllowedActions:      &allowedActions,
+				EnabledRepositories: &enabledRepositories,
+			})
+		if err != nil {
+			return err
+		}
+	} else {
+		_, _, err = client.Actions.EditActionsPermissions(ctx,
+			orgName,
+			github.ActionsPermissions{
+				EnabledRepositories: &enabledRepositories,
+			})
+		if err != nil {
+			return err
+		}
 	}
 
 	if allowedActions == "selected" {

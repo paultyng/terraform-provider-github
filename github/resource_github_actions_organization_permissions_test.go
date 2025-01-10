@@ -270,4 +270,38 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		})
 	})
 
+	t.Run("test disabling of actions at organization level", func(t *testing.T) {
+
+		enabledRepositories := "none"
+
+		config := fmt.Sprintf(`
+			resource "github_actions_organization_permissions" "test" {
+				enabled_repositories = "%s"
+			}
+		`, enabledRepositories)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_actions_organization_permissions.test", "enabled_repositories", enabledRepositories,
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 }
