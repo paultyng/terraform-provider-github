@@ -14,7 +14,12 @@ func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 		Update: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				if err := d.Set("secret_name", d.Id()); err != nil {
+					return nil, err
+				}
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
