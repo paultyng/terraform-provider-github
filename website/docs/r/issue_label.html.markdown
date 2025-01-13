@@ -43,6 +43,8 @@ The following arguments are supported:
 
 * `description` - (Optional) A short description of the label.
 
+* `org` - (Optional) Organization for repo to create this label in. Superscedes owner in provider
+
 * `url` - (Computed) The URL to the issue label
 
 ## Import

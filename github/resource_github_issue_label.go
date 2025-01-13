@@ -41,6 +41,11 @@ func resourceGithubIssueLabel() *schema.Resource {
 				Optional:    true,
 				Description: "A short description of the label.",
 			},
+			"org": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Organization for repo to create this label in. Superscedes owner in provider",
+			},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -66,7 +71,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 
 func resourceGithubIssueLabelCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	var orgName string
+	if d.Get("org").(string) == "" {
+		orgName = meta.(*Owner).name
+	} else {
+		orgName = d.Get("org").(string)
+	}
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	color := d.Get("color").(string)
@@ -144,7 +154,12 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	orgName := meta.(*Owner).name
+	var orgName string
+	if d.Get("org").(string) == "" {
+		orgName = meta.(*Owner).name
+	} else {
+		orgName = d.Get("org").(string)
+	}
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	if !d.IsNewResource() {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
@@ -192,7 +207,12 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
 
-	orgName := meta.(*Owner).name
+	var orgName string
+	if d.Get("org").(string) == "" {
+		orgName = meta.(*Owner).name
+	} else {
+		orgName = d.Get("org").(string)
+	}
 	repoName := d.Get("repository").(string)
 	name := d.Get("name").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
