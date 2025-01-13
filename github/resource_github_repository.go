@@ -765,6 +765,14 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 		repoReq.DefaultBranch = github.String(d.Get("default_branch").(string))
 	}
 
+	// There's a bug in the GitHub 2022-11-28 version, that throws a 422 error
+	// whenever the `web_commit_signoff_required` is set to true, even when it 
+	// is already true.
+	if !d.HasChange("web_commit_signoff_required") && d.Get("web_commit_signoff_required").(bool) {
+		// remove the field from the request
+		repoReq.WebCommitSignoffRequired = nil
+	}
+	
 	repoName := d.Id()
 	owner := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())

@@ -93,7 +93,7 @@ func TestAccGithubRepositories(t *testing.T) {
 
 	})
 
-	t.Run("updates a repositories name without error", func(t *testing.T) {
+	t.Run("updates a repository's name without error", func(t *testing.T) {
 
 		oldName := fmt.Sprintf(`tf-acc-test-rename-%[1]s`, randomID)
 		newName := fmt.Sprintf(`%[1]s-renamed`, oldName)
@@ -1567,6 +1567,115 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 }
 
+func TestAccGithubRepositoryWebCommitSignoffRequired(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("changes the web_commit_signoff_required attribute for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                        = "tf-acc-%s"
+				auto_init                   = true
+				web_commit_signoff_required = true
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "web_commit_signoff_required",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+
+	// Test that setting any other setting than web_commit_signoff_required
+	// being set, doesn't set the value of web_commit_signoff_required to true
+	// or false in the GitHub API call.
+	t.Run("changes a non web_commit_signoff_required attribute for a repository", func(t *testing.T) {
+		
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name                        = "tf-acc-%s"
+				auto_init                   = true
+				allow_merge_commit          = true
+				web_commit_signoff_required = true
+			}
+		`, randomID)
+
+		checks := map[string]resource.TestCheckFunc{
+			"before": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "web_commit_signoff_required",
+					"true",
+				),
+			),
+			"after": resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr(
+					"github_repository.test", "web_commit_signoff_required",
+					"true",
+				),
+			),
+		}
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  checks["before"],
+					},
+					{
+						Config: config,
+						Check:  checks["after"],
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+
+	})
+}
+
 func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
 	resource := resourceGithubRepository()
 	schema := resource.Schema["topics"].Elem.(*schema.Schema)
@@ -1700,3 +1809,4 @@ func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
 		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
 }
+
