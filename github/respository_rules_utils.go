@@ -359,7 +359,8 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		}
 
 		params := &github.RequiredWorkflowsRuleParameters{
-			RequiredWorkflows: requiredWorkflows,
+			DoNotEnforceOnCreate: requiredWorkflowsMap["do_not_enforce_on_create"].(bool),
+			RequiredWorkflows:    requiredWorkflows,
 		}
 		rulesSlice = append(rulesSlice, github.NewRequiredWorkflowsRule(params))
 	}
@@ -507,6 +508,51 @@ func flattenRules(rules []*github.RepositoryRule, org bool) []interface{} {
 			rule["strict_required_status_checks_policy"] = params.StrictRequiredStatusChecksPolicy
 			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
 			rulesMap[v.Type] = []map[string]interface{}{rule}
+
+		case "workflows":
+			var params github.RequiredWorkflowsRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredWorkflowsSlice := make([]map[string]interface{}, 0)
+			for _, check := range params.RequiredWorkflows {
+				requiredWorkflowsSlice = append(requiredWorkflowsSlice, map[string]interface{}{
+					"repository_id": check.RepositoryID,
+					"path":          check.Path,
+					"ref":           check.Ref,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["do_not_enforce_on_create"] = params.DoNotEnforceOnCreate
+			rule["required_workflow"] = requiredWorkflowsSlice
+			rulesMap["required_workflows"] = []map[string]interface{}{rule}
+
+		case "code_scanning":
+			var params github.RequiredCodeScanningRuleParameters
+
+			err := json.Unmarshal(*v.Parameters, &params)
+			if err != nil {
+				log.Printf("[INFO] Unexpected error unmarshalling rule %s with parameters: %v",
+					v.Type, v.Parameters)
+			}
+
+			requiredCodeScanningSlice := make([]map[string]interface{}, 0)
+			for _, check := range params.RequiredCodeScanningTools {
+				requiredCodeScanningSlice = append(requiredCodeScanningSlice, map[string]interface{}{
+					"alerts_threshold":          check.AlertsThreshold,
+					"security_alerts_threshold": check.SecurityAlertsThreshold,
+					"tool":                      check.Tool,
+				})
+			}
+
+			rule := make(map[string]interface{})
+			rule["required_code_scanning_tool"] = requiredCodeScanningSlice
+			rulesMap["required_code_scanning"] = []map[string]interface{}{rule}
 		}
 	}
 

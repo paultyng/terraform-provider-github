@@ -63,6 +63,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					}
 
 					required_workflows {
+						do_not_enforce_on_create = true
 						required_workflow {
 							path          = "path/to/workflow.yaml"
 							repository_id = 1234
@@ -91,12 +92,44 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "name",
+				"github_organization_ruleset.test",
+				"name",
 				"test",
 			),
 			resource.TestCheckResourceAttr(
-				"github_organization_ruleset.test", "enforcement",
+				"github_organization_ruleset.test",
+				"enforcement",
 				"active",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test",
+				"rules.0.required_workflows.0.do_not_enforce_on_create",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test",
+				"rules.0.required_workflows.0.required_workflow.0.path",
+				"path/to/workflow.yaml",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test",
+				"rules.0.required_workflows.0.required_workflow.0.repository_id",
+				"1234",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
+				"errors",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
+				"high_or_higher",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
+				"CodeQL",
 			),
 		)
 

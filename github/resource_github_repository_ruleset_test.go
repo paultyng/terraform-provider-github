@@ -21,6 +21,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				auto_init = false
+				vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
@@ -73,6 +74,14 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 						do_not_enforce_on_create             = true
 					}
 
+					required_code_scanning {
+					  required_code_scanning_tool {
+						alerts_threshold = "errors"
+						security_alerts_threshold = "high_or_higher"
+						tool = "CodeQL"
+					  }
+					}
+
 					non_fast_forward = true
 				}
 			}
@@ -80,12 +89,29 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "name",
+				"github_repository_ruleset.test",
+				"name",
 				"test",
 			),
 			resource.TestCheckResourceAttr(
-				"github_repository_ruleset.test", "enforcement",
+				"github_repository_ruleset.test",
+				"enforcement",
 				"active",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.alerts_threshold",
+				"errors",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.security_alerts_threshold",
+				"high_or_higher",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test",
+				"rules.0.required_code_scanning.0.required_code_scanning_tool.0.tool",
+				"CodeQL",
 			),
 		)
 
@@ -129,6 +155,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_repository" "test" {
 				name = "tf-acc-test-%s"
 				auto_init = false
+				vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
@@ -200,6 +227,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			resource "github_repository" "test" {
 			  name         = "%[1]s"
 			  description  = "Terraform acceptance tests %[2]s"
+			  vulnerability_alerts = true
 			}
 
 			resource "github_repository_ruleset" "test" {
@@ -271,6 +299,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 			  name         = "tf-acc-test-import-%[1]s"
 			  description  = "Terraform acceptance tests %[1]s"
 			  auto_init 	 = false
+			  vulnerability_alerts = true
 			}
 
 			resource "github_repository_environment" "example" {
