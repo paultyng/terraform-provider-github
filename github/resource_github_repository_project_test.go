@@ -10,11 +10,11 @@ import (
 )
 
 func TestAccGithubRepositoryProject(t *testing.T) {
+	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a repository project", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -60,6 +60,5 @@ func TestAccGithubRepositoryProject(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

@@ -2,19 +2,20 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubProjectCard(t *testing.T) {
+	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("creates a project card using a note", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_organization_project" "project" {
@@ -64,11 +65,9 @@ func TestAccGithubProjectCard(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("creates a project card using an issue", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 
 			resource "github_repository" "test" {
@@ -97,7 +96,7 @@ func TestAccGithubProjectCard(t *testing.T) {
 			resource "github_project_card" "test" {
 				column_id    = github_project_column.test.column_id
 				content_id   = github_issue.test.issue_id
-				content_type = "Issue" 
+				content_type = "Issue"
 			}
 
 		`, randomID)
@@ -141,6 +140,5 @@ func TestAccGithubProjectCard(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 }

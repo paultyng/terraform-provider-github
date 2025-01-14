@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccGithubProjectColumn_basic(t *testing.T) {
+	t.Skip("Skipping test as the GitHub REST API no longer supports classic projects")
+
 	if err := testAccCheckOrganization(); err != nil {
 		t.Skipf("Skipping because %s.", err.Error())
 	}
@@ -107,7 +109,6 @@ type testAccGithubProjectColumnExpectedAttributes struct {
 
 func testAccCheckGithubProjectColumnAttributes(column *github.ProjectColumn, want *testAccGithubProjectColumnExpectedAttributes) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
 		if name := column.GetName(); name != want.Name {
 			return fmt.Errorf("got project column %q; want %q", name, want.Name)
 		}
