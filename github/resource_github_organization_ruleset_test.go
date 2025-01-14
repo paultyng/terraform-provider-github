@@ -22,7 +22,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
 
-		config := fmt.Sprintf(`
+		rulesetRefName := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
 				target      = "branch"
@@ -89,6 +89,67 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			}
 		`, randomID)
 
+		rulesetRepositoryProperty := fmt.Sprintf(`
+		resource "github_organization_ruleset" "test" {
+			name        = "test-%s"
+			target      = "branch"
+			enforcement = "active"
+
+			conditions {
+				repository_property {
+					include = [	{
+						name: "team",
+						property_values: ["blue"],
+					}]
+					exclude = []
+				}
+			}
+
+			rules {
+				creation = true
+
+				update = true
+
+				deletion                = true
+				required_linear_history = true
+
+				required_signatures = false
+
+				pull_request {
+					required_approving_review_count   = 2
+					required_review_thread_resolution = true
+					require_code_owner_review         = true
+					dismiss_stale_reviews_on_push     = true
+					require_last_push_approval        = true
+				}
+
+				required_status_checks {
+
+					required_check {
+						context = "ci"
+					}
+
+					strict_required_status_checks_policy = true
+				}
+
+				required_workflows {
+					required_workflow {
+						path          = "path/to/workflow.yaml"
+						repository_id = 1234
+					}
+				}
+
+				branch_name_pattern {
+					name     = "test"
+					negate   = false
+					operator = "starts_with"
+					pattern  = "test"
+				}
+
+				non_fast_forward = true
+			}
+		}
+	`, randomID)
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test", "name",
@@ -100,7 +161,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			),
 		)
 
-		testCase := func(t *testing.T, mode string) {
+		testCase := func(t *testing.T, mode string, config string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:  func() { skipUnlessMode(t, mode) },
 				Providers: testAccProviders,
@@ -114,7 +175,8 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		}
 
 		t.Run("with an enterprise account", func(t *testing.T) {
-			testCase(t, enterprise)
+			testCase(t, enterprise, rulesetRefName)
+			testCase(t, enterprise, rulesetRepositoryProperty)
 		})
 
 	})

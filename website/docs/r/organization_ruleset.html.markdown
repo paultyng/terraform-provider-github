@@ -214,8 +214,9 @@ The `rules` block supports the following:
 #### conditions ####
 
 * `ref_name` - (Required) (Block List, Min: 1, Max: 1) (see [below for nested schema](#conditions.ref_name))
-* `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name`.
-* `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id`. (see [below for nested schema](#conditions.repository_name))
+* `repository_id` (Optional) (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass. Conflicts with `repository_name` and `repository_property`.
+* `repository_name` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_property`. (see [below for nested schema](#conditions.repository_name))
+* `repository_property` (Optional) (Block List, Max: 1) Conflicts with `repository_id` and `repository_name`. (see [below for nested schema](#conditions.repository_property))
 
 One of `repository_id` and `repository_name` must be set for the rule to target any repositories.
 
@@ -230,6 +231,19 @@ One of `repository_id` and `repository_name` must be set for the rule to target 
 * `exclude` - (Required) (List of String) Array of repository names or patterns to exclude. The condition will not pass if any of these patterns match.
 
 * `include` - (Required) (List of String) Array of repository names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~ALL` to include all repositories.
+
+#### conditions.repository_property ####
+
+* `exclude` - (Optional) (List of Repository Properties) The repository properties and values to include. All of these properties must match for the condition to pass. (see [below for nested schema](#conditions.repository_property.properties))
+
+* `include` - (Optional) (List of Repository Properties) The repository properties and values to exclude. The condition will not pass if any of these properties match.(see [below for nested schema](#conditions.repository_property.properties))
+
+#### conditions.repository_property.properties ####
+* `name` (Required) (String) The name of the repository property to target.
+
+* `property_values` (Required) (Array of String) The values to match for the repository property.
+
+* `source` (String) The source of the repository property. Defaults to 'custom' if not specified. Can be one of: `custom`, `system`
 
 ## Attributes Reference
 
