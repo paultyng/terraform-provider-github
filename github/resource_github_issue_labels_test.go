@@ -1,16 +1,19 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/google/go-github/v66/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccGithubIssueLabels(t *testing.T) {
 	t.Run("authoritatively overtakes existing labels", func(t *testing.T) {
-		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+		repoName := fmt.Sprintf("tf-acc-test-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
+		existingLabelName := fmt.Sprintf("label-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum))
 		empty := []map[string]interface{}{}
 
 		testCase := func(t *testing.T, mode string) {
@@ -18,37 +21,58 @@ func TestAccGithubIssueLabels(t *testing.T) {
 				PreCheck:  func() { skipUnlessMode(t, mode) },
 				Providers: testAccProviders,
 				Steps: []resource.TestStep{
-					// 0. Check if some labels already exist (indicated by non-empty plan)
+					// 0. Create the repository
 					{
-						Config:             testAccGithubIssueLabelsConfig(randomID, empty),
+						Config:             testAccGithubIssueLabelsConfig(repoName, nil),
 						ExpectNonEmptyPlan: true,
 					},
-					// 1. Check if all the labels are destroyed when the resource is added
+					// 1. Check if some labels already exist (indicated by non-empty plan)
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, empty),
+						PreConfig: func() {
+							err := testAccGithubIssueLabelsAddLabel(repoName, existingLabelName)
+							if err != nil {
+								t.Fatalf("failed to add label: %s", existingLabelName)
+							}
+						},
+						Config:             testAccGithubIssueLabelsConfig(repoName, empty),
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: true,
+					},
+					// 2. Check if existing labels can be adopted
+					{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
+							"name":        existingLabelName,
+							"color":       "000000",
+							"description": "Test label",
+						})),
+						Check: resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "1"),
+					},
+					// 3. Check if all the labels are destroyed when the resource has no labels
+					{
+						Config: testAccGithubIssueLabelsConfig(repoName, empty),
 						Check:  resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "0"),
 					},
-					// 2. Check if a label can be created
+					// 4. Check if a new label can be created
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]interface{}{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
 							"name":        "foo",
 							"color":       "000000",
 							"description": "foo",
 						})),
 						Check: resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "1"),
 					},
-					// 3. Check if a label can be recreated
+					// 5. Check if a label can be recreated
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, append(empty, map[string]interface{}{
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty, map[string]interface{}{
 							"name":        "Foo",
 							"color":       "000000",
 							"description": "foo",
 						})),
 						Check: resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "1"),
 					},
-					// 4. Check if multiple labels can be created
+					// 6. Check if multiple labels can be created
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, append(empty,
+						Config: testAccGithubIssueLabelsConfig(repoName, append(empty,
 							map[string]interface{}{
 								"name":        "Foo",
 								"color":       "000000",
@@ -65,14 +89,16 @@ func TestAccGithubIssueLabels(t *testing.T) {
 							})),
 						Check: resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "3"),
 					},
-					// 5. Check if labels can be destroyed
+					// 7. Check if labels can be destroyed
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, nil),
+						Config:             testAccGithubIssueLabelsConfig(repoName, nil),
+						ExpectNonEmptyPlan: true,
 					},
-					// 6. Check if labels were actually destroyed
+					// 8. Check if labels were actually destroyed
 					{
-						Config: testAccGithubIssueLabelsConfig(randomID, empty),
-						Check:  resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "0"),
+						Config:             testAccGithubIssueLabelsConfig(repoName, empty),
+						PlanOnly:           true,
+						ExpectNonEmptyPlan: true,
 					},
 				},
 			})
@@ -92,7 +118,7 @@ func TestAccGithubIssueLabels(t *testing.T) {
 	})
 }
 
-func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]interface{}) string {
+func testAccGithubIssueLabelsConfig(repoName string, labels []map[string]interface{}) string {
 	resource := ""
 	if labels != nil {
 		dynamic := ""
@@ -117,10 +143,19 @@ func testAccGithubIssueLabelsConfig(randomId string, labels []map[string]interfa
 
 	return fmt.Sprintf(`
 		resource "github_repository" "test" {
-			name = "tf-acc-test-%s"
+			name = "%s"
 			auto_init = true
 		}
 
 		%s
-	`, randomId, resource)
+	`, repoName, resource)
+}
+
+func testAccGithubIssueLabelsAddLabel(repository, label string) error {
+	client := testAccProvider.Meta().(*Owner).v3client
+	orgName := testAccProvider.Meta().(*Owner).name
+	ctx := context.TODO()
+
+	_, _, err := client.Issues.CreateLabel(ctx, orgName, repository, &github.Label{Name: github.String(label)})
+	return err
 }
