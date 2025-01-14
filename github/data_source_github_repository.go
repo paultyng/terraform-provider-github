@@ -28,6 +28,11 @@ func dataSourceGithubRepository() *schema.Resource {
 				Computed:      true,
 				ConflictsWith: []string{"full_name"},
 			},
+			"owner": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"description": {
 				Type:     schema.TypeString,
 				Default:  nil,
@@ -373,6 +378,7 @@ func dataSourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) er
 	d.SetId(repoName)
 
 	d.Set("name", repo.GetName())
+	d.Set("owner", owner)
 	d.Set("description", repo.GetDescription())
 	d.Set("homepage_url", repo.GetHomepage())
 	d.Set("private", repo.GetPrivate())

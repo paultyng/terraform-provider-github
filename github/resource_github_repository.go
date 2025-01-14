@@ -39,6 +39,12 @@ func resourceGithubRepository() *schema.Resource {
 				ValidateDiagFunc: toDiagFunc(validation.StringMatch(regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`), "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"), "name"),
 				Description:      "The name of the repository.",
 			},
+			"owner": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				Description: "The repository's owner.",
+			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,

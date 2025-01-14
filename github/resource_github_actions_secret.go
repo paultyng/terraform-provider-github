@@ -23,6 +23,13 @@ func resourceGithubActionsSecret() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"owner": {
+				Type:        schema.TypeString,
+				Required:    false,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The account owner of the repository.",
+			},
 			"repository": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -68,9 +75,9 @@ func resourceGithubActionsSecret() *schema.Resource {
 
 func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
 	ctx := context.Background()
 
+	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	repo := d.Get("repository").(string)
 	secretName := d.Get("secret_name").(string)
 	plaintextValue := d.Get("plaintext_value").(string)
@@ -109,7 +116,7 @@ func resourceGithubActionsSecretCreateOrUpdate(d *schema.ResourceData, meta inte
 
 func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.Background()
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -169,7 +176,7 @@ func resourceGithubActionsSecretRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
+	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	repoName, secretName, err := parseTwoPartID(d.Id(), "repository", "secret_name")
@@ -177,14 +184,14 @@ func resourceGithubActionsSecretDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	_, err = client.Actions.DeleteRepoSecret(ctx, orgName, repoName, secretName)
+	_, err = client.Actions.DeleteRepoSecret(ctx, owner, repoName, secretName)
 
 	return err
 }
 
 func resourceGithubActionsSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+	owner := getOwnerParam(d.Get("owner").(string), meta.(*Owner).name)
 	ctx := context.Background()
 
 	parts := strings.Split(d.Id(), "/")
@@ -256,4 +263,11 @@ func encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
 	}
 
 	return cipherText, nil
+}
+
+func getOwnerParam(param string, default_param string) string {
+	if len(param) > 0 {
+		return param
+	}
+	return default_param
 }

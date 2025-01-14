@@ -33,6 +33,7 @@ resource "github_actions_secret" "example_secret" {
 }
 
 resource "github_actions_secret" "example_secret" {
+  owner            = "example_owner"
   repository       = "example_repository"
   secret_name      = "example_secret_name"
   encrypted_value  = var.some_encrypted_secret_string
@@ -45,6 +46,7 @@ The following arguments are supported:
 
 * `repository`      - (Required) Name of the repository
 * `secret_name`     - (Required) Name of the secret
+* `owner`           - (Optional) The account owner of the repository
 * `encrypted_value` - (Optional) Encrypted value of the secret using the GitHub public key in Base64 format.
 * `plaintext_value` - (Optional) Plaintext value of the secret to be encrypted
 
