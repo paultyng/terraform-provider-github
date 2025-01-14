@@ -33,5 +33,5 @@ data "github_team" "example" {
 * `privacy` - the team's privacy type.
 * `permission` - the team's permission level.
 * `members` - List of team members (list of GitHub usernames). Not returned if `summary_only = true`
-* `repositories` - List of team repositories (list of repo names). Not returned if `summary_only = true`
-* `repositories_detailed` - List of team repositories (list of `repo_id` and [`role_name`](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/team_repository#permission)). Not returned if `summary_only = true`
+* `repositories` - (**DEPRECATED**) List of team repositories (list of repo names). Not returned if `summary_only = true`
+* `repositories_detailed` - List of team repositories (each item comprises of `repo_id`, `repo_name` & [`role_name`](https://registry.terraform.io/providers/integrations/github/latest/docs/resources/team_repository#permission)). Not returned if `summary_only = true`
