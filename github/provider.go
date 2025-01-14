@@ -153,6 +153,7 @@ func Provider() *schema.Provider {
 			"github_dependabot_organization_secret_repositories":                    resourceGithubDependabotOrganizationSecretRepositories(),
 			"github_dependabot_secret":                                              resourceGithubDependabotSecret(),
 			"github_emu_group_mapping":                                              resourceGithubEMUGroupMapping(),
+			"github_ip_allow_list_entry":                                            resourceGithubIPAllowListEntry(),
 			"github_issue":                                                          resourceGithubIssue(),
 			"github_issue_label":                                                    resourceGithubIssueLabel(),
 			"github_issue_labels":                                                   resourceGithubIssueLabels(),
