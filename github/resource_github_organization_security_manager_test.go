@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccGithubOrganizationSecurityManagers(t *testing.T) {
+func TestAccGithubOrganizationSecurityManager(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("adds team as security manager", func(t *testing.T) {
