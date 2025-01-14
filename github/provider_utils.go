@@ -9,6 +9,7 @@ import (
 
 var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
 var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
+var isPaidPlan = os.Getenv("GITHUB_PAID_FEATURES")
 var testEnterprise = os.Getenv("ENTERPRISE_SLUG")
 var testOrganization = testOrganizationFunc()
 var testOwner = os.Getenv("GITHUB_OWNER")

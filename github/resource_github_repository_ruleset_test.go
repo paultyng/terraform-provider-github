@@ -365,6 +365,82 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		})
 
 	})
+	t.Run("Creates repository rulesets with paid features without errors", func(t *testing.T) {
+		if isPaidPlan != "true" {
+			t.Skip("Skipping because `GITHUB_PAID_FEATURES` is not set to true")
+		}
+		config := fmt.Sprintf(`
+			 resource "github_repository" "test" {
+				 name                 = "tf-acc-test-%s"
+				 auto_init            = false
+				 visibility           = "internal"
+				 vulnerability_alerts = true
+			 }
+
+			 resource "github_repository_ruleset" "test_push" {
+				 name        = "test-push"
+				 repository  = github_repository.test.id
+				 target      = "push"
+				 enforcement = "active"
+
+				 rules {
+					file_path_restriction {
+					  restricted_file_paths = ["test.txt"]
+					 }
+					max_file_size {
+					  max_file_size = 1048576
+					}
+					file_extension_restriction {
+					   restricted_file_extensions = ["*.zip"]
+					}
+				 }
+			 }
+
+		`, randomID)
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "name",
+				"test-push",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "target",
+				"push",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "rules.0.file_path_restriction.0.restricted_file_paths.0",
+				"test.txt",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "rules.0.max_file_size.0.max_file_size",
+				"1048576",
+			),
+			resource.TestCheckResourceAttr(
+				"github_repository_ruleset.test_push", "rules.0.file_extension_restriction.0.restricted_file_extensions.0",
+				"*.zip",
+			),
+		)
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+		t.Run("with a paid plan in an organization", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 
 }
 

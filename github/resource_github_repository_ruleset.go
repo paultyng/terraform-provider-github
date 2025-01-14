@@ -34,8 +34,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 			"target": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"branch", "tag"}, false),
-				Description:  "Possible values are `branch` and `tag`.",
+				ValidateFunc: validation.StringInSlice([]string{"branch", "push", "tag"}, false),
+				Description:  "Possible values are `branch`, `push` and `tag`.",
 			},
 			"repository": {
 				Type:        schema.TypeString,
@@ -445,6 +445,59 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 													Description: "The name of a code scanning tool",
 												},
 											},
+										},
+									},
+								},
+							},
+						},
+						"file_path_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent commits that include changes in specified file paths from being pushed to the commit graph.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_paths": {
+										Type:        schema.TypeList,
+										MinItems:    1,
+										Required:    true,
+										Description: "The file paths that are restricted from being pushed to the commit graph.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"max_file_size": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file size.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"max_file_size": {
+										Type:        schema.TypeInt,
+										Required:    true,
+										Description: "The maximum allowed size of a file in bytes.",
+									},
+								},
+							},
+						},
+						"file_extension_restriction": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Prevent pushes based on file extensions.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"restricted_file_extensions": {
+										Type:        schema.TypeSet,
+										MinItems:    1,
+										Required:    true,
+										Description: "A list of file extensions.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
 										},
 									},
 								},

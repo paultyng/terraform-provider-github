@@ -149,6 +149,9 @@ export GITHUB_OWNER=
 # enable testing of enterprise appliances
 export GITHUB_BASE_URL=
 
+# enable testing of GitHub Paid features, these normally also require an organization e.g. repository push rulesets
+export GITHUB_PAID_FEATURES=true
+
 # leverage helper accounts for tests requiring them
 # examples include:
 # - https://github.com/github-terraform-test-user
