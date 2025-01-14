@@ -214,7 +214,7 @@ The `rules` block supports the following:
 * `bypass_mode` - (Optional) (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
 
 ~> Note: at the time of writing this, the following actor types correspond to the following actor IDs:
-* `OrganizationAdmin` -> `1`
+* `OrganizationAdmin` -> `0`
 * `RepositoryRole` (This is the actor type, the following are the base repository roles and their associated IDs.)
   * `maintain` -> `2`
   * `write` -> `4`

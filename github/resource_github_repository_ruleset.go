@@ -58,7 +58,7 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"actor_id": {
 							Type:        schema.TypeInt,
 							Required:    true,
-							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.",
+							Description: "The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `0`.",
 						},
 						"actor_type": {
 							Type:         schema.TypeString,
