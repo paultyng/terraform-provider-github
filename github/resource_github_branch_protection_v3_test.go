@@ -325,9 +325,9 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 				  dismissal_teams = ["b"]
 				  dismissal_apps = ["c"]
 				  bypass_pull_request_allowances {
-					  users = ["d"]
+					  users = ["d","e","f"]
 					  teams = [github_team.test.slug]
-					  apps = ["e"]
+					  apps = ["g"]
 				  }
 			  }
 
@@ -364,7 +364,7 @@ func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T)
 				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "1",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.users.#", "3",
 			),
 			resource.TestCheckResourceAttr(
 				"github_branch_protection_v3.test", "required_pull_request_reviews.0.bypass_pull_request_allowances.0.teams.#", "1",
