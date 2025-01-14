@@ -300,6 +300,22 @@ func expandRules(input []interface{}, org bool) []*github.RepositoryRule {
 		rulesSlice = append(rulesSlice, github.NewPullRequestRule(params))
 	}
 
+	// Merge queue rule
+	if v, ok := rulesMap["merge_queue"].([]interface{}); ok && len(v) != 0 {
+		mergeQueueMap := v[0].(map[string]interface{})
+		params := &github.MergeQueueRuleParameters{
+			CheckResponseTimeoutMinutes:  mergeQueueMap["check_response_timeout_minutes"].(int),
+			GroupingStrategy:             mergeQueueMap["grouping_strategy"].(string),
+			MaxEntriesToBuild:            mergeQueueMap["max_entries_to_build"].(int),
+			MaxEntriesToMerge:            mergeQueueMap["max_entries_to_merge"].(int),
+			MergeMethod:                  mergeQueueMap["merge_method"].(string),
+			MinEntriesToMerge:            mergeQueueMap["min_entries_to_merge"].(int),
+			MinEntriesToMergeWaitMinutes: mergeQueueMap["min_entries_to_merge_wait_minutes"].(int),
+		}
+
+		rulesSlice = append(rulesSlice, github.NewMergeQueueRule(params))
+	}
+
 	// Required status checks rule
 	if v, ok := rulesMap["required_status_checks"].([]interface{}); ok && len(v) != 0 {
 		requiredStatusMap := v[0].(map[string]interface{})
