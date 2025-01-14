@@ -95,7 +95,7 @@ func resourceGithubActionsRepositoryOIDCSubjectClaimCustomizationTemplateRead(d 
 	template, _, err := client.Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
 
 	if err != nil {
-		return err
+		return deleteResourceOn404AndSwallow304OtherwiseReturnError(err, d, "actions repository oidc subject claim customization template (%s, %s)", owner, repository)
 	}
 
 	if err = d.Set("repository", repository); err != nil {
