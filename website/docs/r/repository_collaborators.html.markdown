@@ -14,10 +14,10 @@ github_team_repository or they will fight over what your policy should be.
 
 This resource allows you to manage all collaborators for repositories in your
 organization or personal account. For organization repositories, collaborators can
-have explicit (and differing levels of) read, write, or administrator access to 
-specific repositories, without giving the user full organization membership. 
+have explicit (and differing levels of) read, write, or administrator access to
+specific repositories, without giving the user full organization membership.
 For personal repositories, collaborators can only be granted write
-(implicitly includes read) permission. 
+(implicitly includes read) permission.
 
 When applied, an invitation will be sent to the user to become a collaborators
 on a repository. When destroyed, either the invitation will be cancelled or the
@@ -31,7 +31,7 @@ Further documentation on GitHub collaborators:
 - [Adding outside collaborators to your personal repositories](https://help.github.com/en/github/setting-up-and-managing-your-github-user-account/managing-access-to-your-personal-repositories)
 - [Adding outside collaborators to repositories in your organization](https://help.github.com/articles/adding-outside-collaborators-to-repositories-in-your-organization/)
 - [Converting an organization member to an outside collaborators](https://help.github.com/articles/converting-an-organization-member-to-an-outside-collaborator/)
- 
+
 ## Example Usage
 
 ```hcl
@@ -52,7 +52,7 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
     permission = "admin"
     username  = "SomeUser"
   }
-  
+
   team {
     permission = "pull"
     team_id = github_team.some_team.slug
@@ -64,9 +64,10 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 The following arguments are supported:
 
-* `repository` - (Required) The GitHub repository
-* `user` - (Optional) List of users
-* `team` - (Optional) List of teams
+* `repository` - (Required) The GitHub repository.
+* `user` - (Optional) List of users to grant access to the repository.
+* `team` - (Optional) List of teams to grant access to the repository.
+* `ignore_team` - (Optional) List of teams to ignore when checking for repository access. This supports ignoring teams granted access at an organizational level.
 
 The `user` block supports:
 
@@ -77,16 +78,20 @@ The `user` block supports:
 
 The `team` block supports:
 
-* `team_id` - (Required) The GitHub team id or the GitHub team slug
+* `team_id` - (Required) The GitHub team id or the GitHub team slug.
 * `permission` - (Optional) The permission of the outside collaborators for the repository.
   Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing [custom repository role](https://docs.github.com/en/enterprise-cloud@latest/organizations/managing-peoples-access-to-your-organization-with-roles/managing-custom-repository-roles-for-an-organization) within the organisation. Defaults to `pull`.
   Must be `push` for personal repositories. Defaults to `push`.
+
+The `team_ignore` block supports:
+
+* `team_id` - (Required) The GitHub team id or the GitHub team slug.
 
 ## Attribute Reference
 
 In addition to the above arguments, the following attributes are exported:
 
-* `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to 
+* `invitation_ids` - Map of usernames to invitation ID for any users added as part of creation of this resource to
   be used in [`github_user_invitation_accepter`](./user_invitation_accepter.html).
 
 ## Import
