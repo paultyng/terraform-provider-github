@@ -244,6 +244,11 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 											},
 										},
 									},
+									"do_not_enforce_on_create": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Allow repositories and branches to be created if a check would otherwise prohibit it.",
+									},
 									"strict_required_status_checks_policy": {
 										Type:        schema.TypeBool,
 										Optional:    true,
