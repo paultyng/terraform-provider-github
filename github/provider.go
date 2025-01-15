@@ -232,6 +232,7 @@ func Provider() *schema.Provider {
 			"github_organization_custom_role":                                       dataSourceGithubOrganizationCustomRole(),
 			"github_organization_external_identities":                               dataSourceGithubOrganizationExternalIdentities(),
 			"github_organization_ip_allow_list":                                     dataSourceGithubOrganizationIpAllowList(),
+			"github_organization_repositories":                                      dataSourceGithubOrganizationRepositories(),
 			"github_organization_team_sync_groups":                                  dataSourceGithubOrganizationTeamSyncGroups(),
 			"github_organization_teams":                                             dataSourceGithubOrganizationTeams(),
 			"github_organization_webhooks":                                          dataSourceGithubOrganizationWebhooks(),
