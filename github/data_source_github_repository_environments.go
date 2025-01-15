@@ -43,7 +43,9 @@ func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta int
 
 	results := make([]map[string]interface{}, 0)
 
-	var listOptions *github.EnvironmentListOptions
+	var listOptions = &github.EnvironmentListOptions{
+		ListOptions: github.ListOptions{},
+	}
 	for {
 		environments, resp, err := client.Repositories.ListEnvironments(context.Background(), orgName, repoName, listOptions)
 		if err != nil {
